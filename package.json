@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx jest",
-    "build": "webpack",
+    "build": "rm -rf dist && NODE_ENV=production npx webpack",
     "dev:watch": "webpack --mode development --watch"
   },
   "repository": {
