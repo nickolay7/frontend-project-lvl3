@@ -8,12 +8,13 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, './dist'),
-    filename: '[name].bundle.js',
+    filename: 'bundle.js',
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, './src/template.html'),
       filename: 'index.html',
+      path: path.resolve(__dirname, 'dist'),
     }),
   ],
 };
