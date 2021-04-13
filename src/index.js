@@ -17,12 +17,14 @@ const state = {
 };
 
 const form = document.querySelector('form');
-const input = document.querySelector('input[name="name"]');
+const input = document.querySelector('input[name="url"]');
 
 const watchedState = onChange(state, (path, value) => {
   if (path === 'form.valid') {
     if (value === false) {
       input.classList.add('is-invalid');
+    } else {
+      input.classList.remove('is-invalid');
     }
   }
 });
@@ -30,10 +32,9 @@ const watchedState = onChange(state, (path, value) => {
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
-  const feed = formData.get('name');
-  // console.log(rssSchema.isValid(feed));
+  const feed = formData.get('url');
   rssSchema.isValid(feed)
     .then((res) => {
-    if(!res) watchedState.form.valid = false;
+      watchedState.form.valid = res;
   });
 });
