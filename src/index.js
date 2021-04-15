@@ -4,8 +4,25 @@ import onChange from 'on-change';
 import axios from 'axios';
 
 const rssSchema = yup.string().url();
+const form = document.querySelector('form');
+const input = document.querySelector('input[name="url"]');
+const feeds = document.querySelector('.feeds');
+const feedback = document.querySelector('.feedback');
 
-const isRss = (url) => {
+const state = {
+  form: {
+    processError: '',
+    error: '',
+  },
+  currentData: '',
+  feeds: [],
+};
+
+const isValidRss = (url) => {
+  if (state.feeds.includes(url)) {
+    watchedState.form.error = 'exist';
+    return;
+  }
   return rssSchema.isValid(url)
     .then((res) => {
       if (res) {
@@ -14,57 +31,45 @@ const isRss = (url) => {
           .then((response) => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(response.data.contents, "application/xml");
-            const data = doc.querySelector('rss') ? doc : 'It\'s not RSS';
-            // console.log();
-            return data;
-          }).then((data) => console.log(data))
+            if (doc.querySelector('rss')) {
+              watchedState.form.error = 'valid';
+              watchedState.feeds = url;
+              return doc;
+            } else {
+              watchedState.form.error = 'invalid';
+            }
+          }).then((data) => watchedState.currentData = data)
           .catch((err) => {
             watchedState.form.processError = 'Error!';
             throw err;
         });
       } else {
-        console.log('it\'s not valid url');
+        watchedState.form.error = 'invalid';
       }
     }
   );
 };
 
-const state = {
-  form: {
-    // valid: true,
-    processError: '',
-    error: '',
-  },
-  currentData: '',
-  feeds: [],
-};
-
-const form = document.querySelector('form');
-const input = document.querySelector('input[name="url"]');
-const feeds = document.querySelector('.feeds');
-const feedback = document.querySelector('.feedback');
-
-const render = (doc, parent) => {
+const feedsRender = (doc, parent) => {
   form.reset();
-  const h2 = document.createElement('h2');
-  const ul = document.createElement('ul');
+  if (!feeds.querySelector('h2')) {
+    const h2 = document.createElement('h2');
+    const ul = document.createElement('ul');
+    ul.classList.add('list-group', 'mb-5');
+    h2.textContent = 'Фиды';
+    feeds.appendChild(h2);
+    feeds.appendChild(ul);
+  }
+  const ul = feeds.querySelector('ul');
   const li = document.createElement('li');
   const h3 = document.createElement('h3');
   const p = document.createElement('p');
-  ul.classList.add('list-group', 'mb-5');
   li.classList.add('list-group-item');
-  // feedback.classList.remove('text-danger');
-  // feedback.classList.add('text-success');
-  h2.textContent = 'Фиды';
   h3.textContent = doc.querySelector('title').textContent;
   p.textContent = doc.querySelector('description').textContent;
-  // feedback.textContent = 'RSS успешно загружен';
   li.appendChild(p);
   li.appendChild(h3);
-  ul.appendChild(li);
-  feeds.textContent = '';
-  feeds.appendChild(h2);
-  feeds.appendChild(ul);
+  ul.prepend(li);
 };
 
 const errorHandler = (error) => {
@@ -97,7 +102,7 @@ const watchedState = onChange(state, (path, value) => {
     errorHandler(value);
   }
   if (path === 'currentData') {
-    render(state.currentData);
+    feedsRender(state.currentData);
   }
 });
 
@@ -105,5 +110,5 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
   const feed = formData.get('url');
-  console.log(isRss(feed));
+  isValidRss(feed);
 });
