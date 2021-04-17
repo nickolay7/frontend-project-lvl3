@@ -22,6 +22,11 @@ const state = {
   feeds: [],
 };
 
+const parser = (xml) => {
+  const parser = new DOMParser();
+  return  parser.parseFromString(xml, "application/xml");
+};
+
 const isValidRss = (url) => {
   if (state.feeds.includes(url)) {
     watchedState.form.error = 'exist';
@@ -33,8 +38,8 @@ const isValidRss = (url) => {
         const feed = `https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`;
         axios.get(feed)
           .then((response) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(response.data.contents, "application/xml");
+            const content = response.data.contents;
+            const doc = parser(content);
             if (doc.querySelector('rss')) {
               watchedState.form.error = 'valid';
               state.feeds.push(url);
