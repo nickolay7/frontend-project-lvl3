@@ -1,3 +1,4 @@
+import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as yup from 'yup';
 import onChange from 'on-change';
@@ -7,11 +8,14 @@ const rssSchema = yup.string().url();
 const form = document.querySelector('form');
 const input = document.querySelector('input[name="url"]');
 const feeds = document.querySelector('.feeds');
+const posts = document.querySelector('.posts');
 const feedback = document.querySelector('.feedback');
+const modalTitle = document.querySelector('.modal-title');
+const modalBody = document.querySelector('.modal-body');
+const fullArticle = document.querySelector('.full-article');
 
 const state = {
   form: {
-    processError: '',
     error: '',
   },
   currentData: '',
@@ -33,15 +37,15 @@ const isValidRss = (url) => {
             const doc = parser.parseFromString(response.data.contents, "application/xml");
             if (doc.querySelector('rss')) {
               watchedState.form.error = 'valid';
-              watchedState.feeds = url;
+              state.feeds.push(url);
               return doc;
             } else {
               watchedState.form.error = 'invalid';
+              throw new Error('ups');
             }
           }).then((data) => watchedState.currentData = data)
           .catch((err) => {
-            watchedState.form.processError = 'Error!';
-            throw err;
+            watchedState.form.error = 'inetError';
         });
       } else {
         watchedState.form.error = 'invalid';
@@ -50,7 +54,7 @@ const isValidRss = (url) => {
   );
 };
 
-const feedsRender = (doc, parent) => {
+const feedsRender = (doc) => {
   form.reset();
   if (!feeds.querySelector('h2')) {
     const h2 = document.createElement('h2');
@@ -70,6 +74,48 @@ const feedsRender = (doc, parent) => {
   li.appendChild(p);
   li.appendChild(h3);
   ul.prepend(li);
+};
+
+const postsRender = (doc) => {
+  if (!posts.querySelector('h2')) {
+    const h2 = document.createElement('h2');
+    const ul = document.createElement('ul');
+    ul.classList.add('list-group');
+    h2.textContent = 'Посты';
+    posts.appendChild(h2);
+    posts.appendChild(ul);
+  }
+  const ul = posts.querySelector('ul');
+  const items = doc.querySelectorAll('item');
+  items.forEach((item, index) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    const button = document.createElement('button');
+    const title = item.querySelector('title').textContent;
+    const description = item.querySelector('description').textContent;
+    const href = item.querySelector('link').textContent;
+    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start');
+    a.classList.add('font-weight-bold');
+    a.dataset.id = index;
+    a.setAttribute('target', '_blank');
+    a.setAttribute('href', href);
+    button.setAttribute('type', 'button');
+    button.classList.add('btn', 'btn-primary', 'btn-sm');
+    button.dataset.id = index;
+    button.dataset.toggle = 'modal';
+    button.dataset.target = '#modal';
+    a.textContent = title;
+    button.textContent = 'Просмотр';
+    li.appendChild(a);
+    li.appendChild(button);
+    button.addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      modalTitle.textContent = title;
+      modalBody.textContent = description;
+      fullArticle.setAttribute('href', href);
+    });
+    ul.prepend(li);
+  });
 };
 
 const errorHandler = (error) => {
@@ -92,6 +138,11 @@ const errorHandler = (error) => {
       feedback.classList.add('text-success');
       feedback.textContent = 'RSS успешно загружен';
       break;
+    case 'inetError':
+      input.classList.add('is-invalid');
+      feedback.classList.add('text-danger');
+      feedback.classList.remove('text-success');
+      feedback.textContent = 'Ошибка сети';
     default:
       break;
   }
@@ -103,6 +154,7 @@ const watchedState = onChange(state, (path, value) => {
   }
   if (path === 'currentData') {
     feedsRender(state.currentData);
+    postsRender(state.currentData);
   }
 });
 
