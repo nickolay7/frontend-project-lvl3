@@ -1,7 +1,8 @@
-// import i18next from 'i18next';
+import i18next from 'i18next';
 import * as yup from "yup";
 import axios from "axios";
 import onChange from "on-change";
+import resources from './locales/index.js';
 
 const form = document.querySelector('form');
 const input = document.querySelector('input[name="url"]');
@@ -76,31 +77,31 @@ const postsRender = (doc) => {
   });
 };
 
-const errorHandler = (error) => {
+const errorHandler = (error, i18n) => {
   switch (error) {
     case 'invalid':
       input.classList.add('is-invalid');
       feedback.classList.add('text-danger');
       feedback.classList.remove('text-success');
-      feedback.textContent = 'Ссылка должна быть валидным URL';
+      feedback.textContent = i18n.t('errors.invalid');
       break;
     case 'exist':
       input.classList.add('is-invalid');
       feedback.classList.add('text-danger');
       feedback.classList.remove('text-success');
-      feedback.textContent = 'RSS уже существует';
+      feedback.textContent = i18n.t('errors.exist');
       break;
     case 'valid':
       input.classList.remove('is-invalid');
       feedback.classList.remove('text-danger');
       feedback.classList.add('text-success');
-      feedback.textContent = 'RSS успешно загружен';
+      feedback.textContent = i18n.t('errors.valid');
       break;
     case 'inetError':
       input.classList.add('is-invalid');
       feedback.classList.add('text-danger');
       feedback.classList.remove('text-success');
-      feedback.textContent = 'Ошибка сети';
+      feedback.textContent = i18n.t('errors.inetError');
     default:
       break;
   }
@@ -146,13 +147,16 @@ const isValidRss = (url, watchedState) => {
 };
 
 export default () => {
-  // const i18nextInstance = i18next.createInstance();
-  // await i18nextInstance.init({
-  //   lng: 'ru',
-  //   resources: /* переводы */
-  // });
+  const defaultLanguage = 'en';
+  const i18n = i18next.createInstance();
+  i18n.init({
+    lng: defaultLanguage,
+    debug: false,
+    resources,
+  });
 
   const state = {
+    lng: defaultLanguage,
     form: {
       error: '',
     },
@@ -161,12 +165,18 @@ export default () => {
   }
 
   const watchedState = onChange(state, (path, value) => {
-    if (path === 'form.error') {
-      errorHandler(value);
-    }
-    if (path === 'currentData') {
-      feedsRender(state.currentData);
-      postsRender(state.currentData);
+    switch (path) {
+      // case 'lng': i18nInstance.changeLanguage(value).then(() => render(watchedState i18nInstance));
+      //   break;
+      case 'form.error':
+        errorHandler(value, i18n);
+        break;
+      case 'currentData':
+        feedsRender(state.currentData);
+        postsRender(state.currentData);
+        break;
+      default:
+        break;
     }
   });
 
@@ -175,6 +185,5 @@ export default () => {
     const formData = new FormData(e.target);
     const feed = formData.get('url');
     isValidRss(feed, watchedState);
-    console.log(watchedState);
   });
 };
