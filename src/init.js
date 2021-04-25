@@ -13,13 +13,13 @@ const modalTitle = document.querySelector('.modal-title');
 const modalBody = document.querySelector('.modal-body');
 const fullArticle = document.querySelector('.full-article');
 
-const feedsRender = (doc) => {
+const feedsRender = (doc, i18n) => {
   form.reset();
   if (!feeds.querySelector('h2')) {
     const h2 = document.createElement('h2');
     const ul = document.createElement('ul');
     ul.classList.add('list-group', 'mb-5');
-    h2.textContent = 'Фиды';
+    h2.textContent = i18n.t('headers.feeds');
     feeds.appendChild(h2);
     feeds.appendChild(ul);
   }
@@ -35,12 +35,12 @@ const feedsRender = (doc) => {
   ul.prepend(li);
 };
 
-const postsRender = (doc) => {
+const postsRender = (doc, i18n) => {
   if (!posts.querySelector('h2')) {
     const h2 = document.createElement('h2');
     const ul = document.createElement('ul');
     ul.classList.add('list-group');
-    h2.textContent = 'Посты';
+    h2.textContent = i18n.t('headers.posts');
     posts.appendChild(h2);
     posts.appendChild(ul);
   }
@@ -77,30 +77,38 @@ const postsRender = (doc) => {
   });
 };
 
+const classSwitcher = (success) => {
+  if (success) {
+    input.classList.remove('is-invalid');
+    feedback.classList.remove('text-danger');
+    feedback.classList.add('text-success');
+  } else {
+    input.classList.add('is-invalid');
+    feedback.classList.add('text-danger');
+    feedback.classList.remove('text-success');
+  }
+};
+
 const errorHandler = (error, i18n) => {
   switch (error) {
+    case 'noRss':
+      classSwitcher(0);
+      feedback.textContent = i18n.t('errors.noRss');
+      break;
     case 'invalid':
-      input.classList.add('is-invalid');
-      feedback.classList.add('text-danger');
-      feedback.classList.remove('text-success');
+      classSwitcher(0);
       feedback.textContent = i18n.t('errors.invalid');
       break;
     case 'exist':
-      input.classList.add('is-invalid');
-      feedback.classList.add('text-danger');
-      feedback.classList.remove('text-success');
+      classSwitcher(0);
       feedback.textContent = i18n.t('errors.exist');
       break;
     case 'valid':
-      input.classList.remove('is-invalid');
-      feedback.classList.remove('text-danger');
-      feedback.classList.add('text-success');
+      classSwitcher(1);
       feedback.textContent = i18n.t('errors.valid');
       break;
     case 'inetError':
-      input.classList.add('is-invalid');
-      feedback.classList.add('text-danger');
-      feedback.classList.remove('text-success');
+      classSwitcher(0);
       feedback.textContent = i18n.t('errors.inetError');
     default:
       break;
@@ -132,11 +140,17 @@ const isValidRss = (url, watchedState) => {
                 watchedState.feeds.push(url);
                 return doc;
               } else {
-                watchedState.form.error = 'invalid';
-                throw new Error('ups');
+                watchedState.form.error = 'noRss';
+                return 'noRss';
               }
-            }).then((data) => watchedState.currentData = data)
-            .catch(() => {
+            })
+            .then((data) => {
+              if (data !== 'noRss') {
+                watchedState.currentData = data;
+              }
+            })
+            .catch((err) => {
+              // console.log(err.message);
               watchedState.form.error = 'inetError';
             });
         } else {
@@ -172,8 +186,8 @@ export default () => {
         errorHandler(value, i18n);
         break;
       case 'currentData':
-        feedsRender(state.currentData);
-        postsRender(state.currentData);
+        feedsRender(state.currentData, i18n);
+        postsRender(state.currentData, i18n);
         break;
       default:
         break;
