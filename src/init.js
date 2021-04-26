@@ -4,7 +4,7 @@ import axios from "axios";
 import onChange from "on-change";
 import resources from './locales/index.js';
 
-const form = document.querySelector('form');
+const form = document.querySelector('.rss-form');
 const input = document.querySelector('input[name="url"]');
 const feeds = document.querySelector('.feeds');
 const posts = document.querySelector('.posts');
