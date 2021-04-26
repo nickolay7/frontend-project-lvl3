@@ -97,6 +97,10 @@ const classSwitcher = (success) => {
 
 const errorHandler = (error, i18n) => {
   switch (error) {
+    case 'empty':
+      classSwitcher(0);
+      feedback.textContent = i18n.t('errors.empty');
+      break;
     case 'noRss':
       classSwitcher(0);
       feedback.textContent = i18n.t('errors.noRss');
@@ -129,6 +133,9 @@ const parser = (xml) => {
 const rssSchema = yup.string().url();
 
 const isValidRss = (url, watchedState) => {
+  // if (url === 'ссылка RSS') {
+  //   watchedState.form.error = 'empty';
+  // }
   if (watchedState.feeds.includes(url)) {
     watchedState.form.error = 'exist';
     return;
@@ -175,14 +182,14 @@ const postsUpdate = (state, i18n) => {
     const hrefs = Array.from(hrefsOnPage).map((el) => el.href);
     const items = data.map((content) => parser(content)).map((item) => item.querySelectorAll('item'));
     const filtered = items.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
-    console.log(filtered);
+    // console.log(filtered);
     const ul = posts.querySelector('ul');
     filtered.forEach((item) => addPosts(ul, item));
   }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
 };
 
 export default () => {
-  const defaultLanguage = 'en';
+  const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
   i18n.init({
     lng: defaultLanguage,
