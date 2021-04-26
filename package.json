@@ -37,10 +37,10 @@
     "style-loader": "^2.0.0",
     "webpack": "^5.30.0",
     "webpack-cli": "^4.6.0",
-    "webpack-dev-server": "^3.11.2",
-    "yup": "^0.32.9"
+    "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
+    "yup": "^0.32.9",
     "axios": "^0.21.1",
     "bootstrap": "^4.6.0",
     "i18next": "^20.2.1",
