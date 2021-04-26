@@ -1,9 +1,10 @@
 import i18next from 'i18next';
-import * as yup from "yup";
-import axios from "axios";
-import onChange from "on-change";
+import * as yup from 'yup';
+import axios from 'axios';
+import onChange from 'on-change';
 import resources from './locales/index.js';
 
+const route = (url) => `https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`;
 const form = document.querySelector('form');
 const input = document.querySelector('input[name="url"]');
 const feeds = document.querySelector('.feeds');
@@ -57,8 +58,7 @@ const addPosts = (container, data) => {
     button.textContent = 'Просмотр';
     li.appendChild(a);
     li.appendChild(button);
-    button.addEventListener('click', (e) => {
-      const id = e.target.dataset.id;
+    button.addEventListener('click', () => {
       modalTitle.textContent = title;
       modalBody.textContent = description;
       fullArticle.setAttribute('href', href);
@@ -67,7 +67,7 @@ const addPosts = (container, data) => {
     });
     container.prepend(li);
   });
-}
+};
 
 const postsRender = (doc, i18n) => {
   if (!posts.querySelector('h2')) {
@@ -120,71 +120,61 @@ const errorHandler = (error, i18n) => {
     case 'inetError':
       classSwitcher(0);
       feedback.textContent = i18n.t('errors.inetError');
+      break;
     default:
       break;
   }
 };
 
-const parser = (xml) => {
+const parse = (xml) => {
   const parser = new DOMParser();
-  return  parser.parseFromString(xml, "application/xml");
+  return parser.parseFromString(xml, 'application/xml');
 };
 
 const rssSchema = yup.string().url();
 
-const isValidRss = (url, watchedState) => {
-  // if (url === 'ссылка RSS') {
-  //   watchedState.form.error = 'empty';
-  // }
-  if (watchedState.feeds.includes(url)) {
-    watchedState.form.error = 'exist';
-    return;
+const isValidRss = (url, ws) => {
+  if (ws.urls.includes(url)) {
+    ws.form.error = 'exist';
+    return null;
   }
   return rssSchema.isValid(url)
-    .then((res) => {
-        if (res) {
-          const feed = `https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`;
-          axios.get(feed)
-            .then((response) => {
-              const content = response.data.contents;
-              const doc = parser(content);
-              if (doc.querySelector('rss')) {
-                watchedState.form.error = 'valid';
-                watchedState.feeds.push(feed);
-                return doc;
-              } else {
-                watchedState.form.error = 'noRss';
-                return 'noRss';
-              }
-            })
-            .then((data) => {
-              if (data !== 'noRss') {
-                watchedState.currentData = data;
-              }
-            })
-            .catch((err) => {
-              // console.log(err.message);
-              watchedState.form.error = 'inetError';
-            });
-        } else {
-          watchedState.form.error = 'invalid';
-        }
-      }
-    );
+    .then(() => {
+      const feed = route(url);
+      axios.get(feed)
+        .then((response) => {
+          const content = response.data.contents;
+          const doc = parse(content);
+          if (doc.querySelector('rss')) {
+            ws.form.error = 'valid';
+            ws.urls.push(url);
+            ws.currentData = doc;
+          } else {
+            ws.form.error = 'noRss';
+          }
+        })
+        .catch(() => {
+          ws.form.error = 'inetError';
+        });
+    })
+    .catch(() => {
+      ws.form.error = 'invalid';
+    });
 };
 
 const postsUpdate = (state, i18n) => {
-  const feeds = state.feeds;
-  const promises = feeds.map((feed) => axios.get(feed));
-  const xmls = Promise.all(promises).then((responses) => responses.map((response) => response.data.contents));
-  xmls.then((data) => {
-    const hrefsOnPage = posts.querySelectorAll('a');
-    const hrefs = Array.from(hrefsOnPage).map((el) => el.href);
-    const items = data.map((content) => parser(content)).map((item) => item.querySelectorAll('item'));
-    const filtered = items.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
-    const ul = posts.querySelector('ul');
-    filtered.forEach((item) => addPosts(ul, item));
-  }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
+  const { urls } = state;
+  const promises = urls.map((url) => axios.get(route(url)));
+  Promise.all(promises)
+    .then((responses) => responses.map((response) => response.data.contents))
+    .then((data) => {
+      const linksOnPage = posts.querySelectorAll('a');
+      const hrefs = Array.from(linksOnPage).map((el) => el.href);
+      const newPosts = data.map((content) => parse(content)).map((item) => item.querySelectorAll('item'));
+      const filtered = newPosts.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
+      const ul = posts.querySelector('ul');
+      filtered.forEach((item) => addPosts(ul, item));
+    }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
 };
 
 export default () => {
@@ -202,13 +192,11 @@ export default () => {
       error: '',
     },
     currentData: '',
-    feeds: [],
-  }
+    urls: [],
+  };
 
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
-      // case 'lng': i18nInstance.changeLanguage(value).then(() => render(watchedState i18nInstance));
-      //   break;
       case 'form.error':
         errorHandler(value, i18n);
         break;

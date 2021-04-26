@@ -6,6 +6,7 @@ plugins:
 
 # https://eslint.org/docs/user-guide/configuring#specifying-environments
 env:
+  browser: true
   node: true
   es2020: true
 
