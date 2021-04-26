@@ -35,18 +35,8 @@ const feedsRender = (doc, i18n) => {
   ul.prepend(li);
 };
 
-const postsRender = (doc, i18n) => {
-  if (!posts.querySelector('h2')) {
-    const h2 = document.createElement('h2');
-    const ul = document.createElement('ul');
-    ul.classList.add('list-group');
-    h2.textContent = i18n.t('headers.posts');
-    posts.appendChild(h2);
-    posts.appendChild(ul);
-  }
-  const ul = posts.querySelector('ul');
-  const items = doc.querySelectorAll('item');
-  items.forEach((item, index) => {
+const addPosts = (container, data) => {
+  data.forEach((item, index) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
     const button = document.createElement('button');
@@ -73,8 +63,22 @@ const postsRender = (doc, i18n) => {
       modalBody.textContent = description;
       fullArticle.setAttribute('href', href);
     });
-    ul.prepend(li);
+    container.prepend(li);
   });
+}
+
+const postsRender = (doc, i18n) => {
+  if (!posts.querySelector('h2')) {
+    const h2 = document.createElement('h2');
+    const ul = document.createElement('ul');
+    ul.classList.add('list-group');
+    h2.textContent = i18n.t('headers.posts');
+    posts.appendChild(h2);
+    posts.appendChild(ul);
+  }
+  const ul = posts.querySelector('ul');
+  const items = doc.querySelectorAll('item');
+  addPosts(ul, items);
 };
 
 const classSwitcher = (success) => {
@@ -137,7 +141,7 @@ const isValidRss = (url, watchedState) => {
               const doc = parser(content);
               if (doc.querySelector('rss')) {
                 watchedState.form.error = 'valid';
-                watchedState.feeds.push(url);
+                watchedState.feeds.push(feed);
                 return doc;
               } else {
                 watchedState.form.error = 'noRss';
@@ -158,6 +162,21 @@ const isValidRss = (url, watchedState) => {
         }
       }
     );
+};
+
+const postsUpdate = (state, i18n) => {
+  const feeds = state.feeds;
+  const promises = feeds.map((feed) => axios.get(feed));
+  const xmls = Promise.all(promises).then((responses) => responses.map((response) => response.data.contents));
+  xmls.then((data) => {
+    const hrefsOnPage = posts.querySelectorAll('a');
+    const hrefs = Array.from(hrefsOnPage).map((el) => el.href);
+    const items = data.map((content) => parser(content)).map((item) => item.querySelectorAll('item'));
+    const filtered = items.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
+    console.log(filtered);
+    const ul = posts.querySelector('ul');
+    filtered.forEach((item) => addPosts(ul, item));
+  }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
 };
 
 export default () => {
@@ -188,6 +207,7 @@ export default () => {
       case 'currentData':
         feedsRender(state.currentData, i18n);
         postsRender(state.currentData, i18n);
+        postsUpdate(state, i18n);
         break;
       default:
         break;
