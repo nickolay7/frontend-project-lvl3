@@ -62,6 +62,8 @@ const addPosts = (container, data) => {
       modalTitle.textContent = title;
       modalBody.textContent = description;
       fullArticle.setAttribute('href', href);
+      a.classList.remove('font-weight-bold');
+      a.classList.add('font-weight-normal');
     });
     container.prepend(li);
   });
