@@ -181,7 +181,7 @@ export default () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
 
-  return i18n.init({
+  i18n.init({
     lng: defaultLanguage,
     debug: false,
     resources,
