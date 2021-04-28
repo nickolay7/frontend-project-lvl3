@@ -177,10 +177,10 @@ const postsUpdate = (state, i18n) => {
     }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
 };
 
-export default () => {
+export default async () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
-  i18n.init({
+  await i18n.init({
     lng: defaultLanguage,
     debug: false,
     resources,
