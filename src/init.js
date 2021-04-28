@@ -177,44 +177,44 @@ const postsUpdate = (state, i18n) => {
     }).then(() => setTimeout(postsUpdate, 5000, state, i18n));
 };
 
-export default async () => {
+export default () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
 
-  await i18n.init({
+  i18n.init({
     lng: defaultLanguage,
     debug: false,
     resources,
-  });
+  }).then(() => {
+    const state = {
+      lng: defaultLanguage,
+      form: {
+        error: '',
+      },
+      currentData: '',
+      urls: [],
+    };
 
-  const state = {
-    lng: defaultLanguage,
-    form: {
-      error: '',
-    },
-    currentData: '',
-    urls: [],
-  };
+    const watchedState = onChange(state, (path, value) => {
+      switch (path) {
+        case 'form.error':
+          errorHandler(value, i18n);
+          break;
+        case 'currentData':
+          feedsRender(state.currentData, i18n);
+          postsRender(state.currentData, i18n);
+          postsUpdate(state, i18n);
+          break;
+        default:
+          break;
+      }
+    });
 
-  const watchedState = onChange(state, (path, value) => {
-    switch (path) {
-      case 'form.error':
-        errorHandler(value, i18n);
-        break;
-      case 'currentData':
-        feedsRender(state.currentData, i18n);
-        postsRender(state.currentData, i18n);
-        postsUpdate(state, i18n);
-        break;
-      default:
-        break;
-    }
-  });
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const feed = formData.get('url');
-    isValidRss(feed, watchedState);
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const feed = formData.get('url');
+      isValidRss(feed, watchedState);
+    });
   });
 };
