@@ -180,11 +180,14 @@ const postsUpdate = (state, i18n) => {
 export default () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
+
   i18n.init({
     lng: defaultLanguage,
     debug: false,
     resources,
-  }).then(() => {});
+  }).then(() => {
+    console.log('I\'m ready');
+  });
 
   const state = {
     lng: defaultLanguage,
