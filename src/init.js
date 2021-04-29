@@ -132,14 +132,20 @@ export default async () => {
     }
   };
 
-  const rssSchema = yup.string().url();
+  const rssSchema = yup.string().url()
+
+  // const validateUrl = (url) => {
+  //   const matcher = /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/;
+  //
+  //   return matcher.test(url);
+  // }
 
   const validate = (url, watchedState) => {
     if (watchedState.urls.includes(url)) {
       watchedState.form.error = 'exist';
       return null;
     }
-    return rssSchema.validate(url)
+    rssSchema.validate(url)
       .then(() => {
         const feed = route(url);
         axios.get(feed)
