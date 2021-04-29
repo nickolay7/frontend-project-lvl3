@@ -19,7 +19,7 @@ export default async () => {
   const i18n = i18next.createInstance();
 
   const feedsRender = (doc) => {
-    form.reset();
+    form.reset()
     if (!feeds.querySelector('h2')) {
       const h2 = document.createElement('h2');
       const ul = document.createElement('ul');
@@ -199,7 +199,7 @@ export default async () => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form.error':
-        errorHandler(value, i18n);
+        errorHandler(value);
         break;
       case 'currentData':
         feedsRender(state.currentData);
