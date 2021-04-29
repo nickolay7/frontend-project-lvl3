@@ -3,6 +3,7 @@ import * as yup from 'yup';
 import axios from 'axios';
 import onChange from 'on-change';
 import resources from './locales/index.js';
+import parser from './parser.js';
 
 const route = (url) => `https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`;
 
@@ -18,8 +19,9 @@ export default async () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
 
-  const feedsRender = (doc) => {
-    form.reset()
+  const feedsRender = (data) => {
+    const { title, description } = data;
+    form.reset();
     if (!feeds.querySelector('h2')) {
       const h2 = document.createElement('h2');
       const ul = document.createElement('ul');
@@ -33,21 +35,21 @@ export default async () => {
     const h3 = document.createElement('h3');
     const p = document.createElement('p');
     li.classList.add('list-group-item');
-    h3.textContent = doc.querySelector('title').textContent;
-    p.textContent = doc.querySelector('description').textContent;
+    h3.textContent = title.textContent;
+    p.textContent = description.textContent;
     li.appendChild(p);
     li.appendChild(h3);
     ul.prepend(li);
   };
 
   const addPosts = (container, data) => {
-    data.forEach((item, index) => {
+    data.forEach((post, index) => {
       const li = document.createElement('li');
       const a = document.createElement('a');
       const button = document.createElement('button');
-      const title = item.querySelector('title').textContent;
-      const description = item.querySelector('description').textContent;
-      const href = item.querySelector('link').textContent;
+      const title = post.querySelector('title').textContent;
+      const description = post.querySelector('description').textContent;
+      const href = post.querySelector('link').textContent;
       li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start');
       a.classList.add('font-weight-bold');
       a.dataset.id = index;
@@ -73,7 +75,8 @@ export default async () => {
     });
   };
 
-  const postsRender = (doc) => {
+  const postsRender = (data) => {
+    const { postsList } = data;
     if (!posts.querySelector('h2')) {
       const h2 = document.createElement('h2');
       const ul = document.createElement('ul');
@@ -83,8 +86,7 @@ export default async () => {
       posts.appendChild(ul);
     }
     const ul = posts.querySelector('ul');
-    const items = doc.querySelectorAll('item');
-    addPosts(ul, items);
+    addPosts(ul, postsList);
   };
 
   const classSwitcher = (success) => {
@@ -99,7 +101,7 @@ export default async () => {
     }
   };
 
-  const errorHandler = (error) => {
+  const errorsHandler = (error) => {
     switch (error) {
       case 'empty':
         classSwitcher(0);
@@ -130,29 +132,24 @@ export default async () => {
     }
   };
 
-  const parse = (xml) => {
-    const parser = new DOMParser();
-    return parser.parseFromString(xml, 'application/xml');
-  };
-
   const rssSchema = yup.string().url();
 
-  const isValidRss = (url, watchedState) => {
+  const validate = (url, watchedState) => {
     if (watchedState.urls.includes(url)) {
       watchedState.form.error = 'exist';
       return null;
     }
-    return rssSchema.isValid(url)
+    return rssSchema.validate(url)
       .then(() => {
         const feed = route(url);
         axios.get(feed)
           .then((response) => {
             const content = response.data.contents;
-            const doc = parse(content);
-            if (doc.querySelector('rss')) {
+            const data = parser(content);
+            if (data.rss) {
               watchedState.form.error = 'valid';
               watchedState.urls.push(url);
-              watchedState.currentData = doc;
+              watchedState.currentData = data;
             } else {
               watchedState.form.error = 'noRss';
             }
@@ -168,13 +165,13 @@ export default async () => {
 
   const postsUpdate = (state) => {
     const { urls } = state;
-    const promises = urls.map((url) => axios.get(route(url)));
-    Promise.all(promises)
+    const feedsRequest = urls.map((url) => axios.get(route(url)));
+    Promise.all(feedsRequest)
       .then((responses) => responses.map((response) => response.data.contents))
-      .then((data) => {
+      .then((contents) => {
         const linksOnPage = posts.querySelectorAll('a');
         const hrefs = Array.from(linksOnPage).map((el) => el.href);
-        const newPosts = data.map((content) => parse(content)).map((item) => item.querySelectorAll('item'));
+        const newPosts = contents.map((post) => parser(post).postsList);
         const filtered = newPosts.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
         const ul = posts.querySelector('ul');
         filtered.forEach((item) => addPosts(ul, item));
@@ -199,7 +196,7 @@ export default async () => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form.error':
-        errorHandler(value);
+        errorsHandler(value);
         break;
       case 'currentData':
         feedsRender(state.currentData);
@@ -215,6 +212,6 @@ export default async () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const feed = formData.get('url');
-    isValidRss(feed, watchedState);
+    validate(feed, watchedState);
   });
 };
