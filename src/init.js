@@ -101,8 +101,8 @@ export default async () => {
     }
   };
 
-  const errorsHandler = (error) => {
-    switch (error) {
+  const errorsHandler = (errors) => {
+    switch (errors) {
       case 'empty':
         classSwitcher(0);
         feedback.textContent = i18n.t('errors.empty');
@@ -119,13 +119,13 @@ export default async () => {
         classSwitcher(0);
         feedback.textContent = i18n.t('errors.exist');
         break;
-      case 'valid':
+      case 'haveNotErrors':
         classSwitcher(1);
-        feedback.textContent = i18n.t('errors.valid');
+        feedback.textContent = i18n.t('errors.haveNotErrors');
         break;
-      case 'inetError':
+      case 'networkError':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.inetError');
+        feedback.textContent = i18n.t('errors.networkError');
         break;
       default:
         break;
@@ -146,8 +146,8 @@ export default async () => {
           .then((response) => {
             const content = response.data.contents;
             const data = parser(content);
-            if (data.rss) {
-              watchedState.form.error = 'valid';
+            if (!data.errors) {
+              watchedState.form.error = 'haveNotErrors';
               watchedState.urls.push(url);
               watchedState.currentData = data;
             } else {
@@ -155,7 +155,7 @@ export default async () => {
             }
           })
           .catch(() => {
-            watchedState.form.error = 'inetError';
+            watchedState.form.error = 'networkError';
           });
       })
       .catch(() => {
@@ -187,7 +187,7 @@ export default async () => {
   const state = {
     lng: defaultLanguage,
     form: {
-      error: '',
+      errors: '',
     },
     currentData: '',
     urls: [],

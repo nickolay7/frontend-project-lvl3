@@ -4,8 +4,8 @@ export default (xml) => {
   const title = doc.querySelector('title');
   const description = doc.querySelector('description');
   const postsList = doc.querySelectorAll('item');
-  const rss = doc.querySelector('rss');
+  const errors = doc.querySelector('parsererror');
   return {
-    rss, title, description, postsList,
+    errors, title, description, postsList,
   };
 };

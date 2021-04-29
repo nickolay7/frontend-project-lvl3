@@ -4,8 +4,8 @@ export default {
       empty: 'Не должно быть пустым',
       invalid: 'Ссылка должна быть валидным URL',
       exist: 'RSS уже существует',
-      valid: 'RSS успешно загружен',
-      inetError: 'Ошибка сети',
+      haveNotErrors: 'RSS успешно загружен',
+      networkError: 'Ошибка сети',
       noRss: 'Ресурс не содержит валидный RSS',
     },
     headers: {
