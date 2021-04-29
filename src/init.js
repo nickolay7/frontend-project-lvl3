@@ -1,5 +1,4 @@
 import i18next from 'i18next';
-import * as yup from 'yup';
 import axios from 'axios';
 import onChange from 'on-change';
 import resources from './locales/index.js';
@@ -132,41 +131,37 @@ export default async () => {
     }
   };
 
-  const rssSchema = yup.string().url()
-
-  // const validateUrl = (url) => {
-  //   const matcher = /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/;
-  //
-  //   return matcher.test(url);
-  // }
+  const validateUrl = (url) => {
+    const matcher = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(\:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(\#[-a-z\d_]*)?$/gi;
+    return matcher.test(url);
+  };
 
   const validate = (url, watchedState) => {
     if (watchedState.urls.includes(url)) {
       watchedState.form.error = 'exist';
       return null;
     }
-    rssSchema.validate(url)
-      .then(() => {
-        const feed = route(url);
-        axios.get(feed)
-          .then((response) => {
-            const content = response.data.contents;
-            const data = parser(content);
-            if (!data.errors) {
-              watchedState.form.error = 'haveNotErrors';
-              watchedState.urls.push(url);
-              watchedState.currentData = data;
-            } else {
-              watchedState.form.error = 'noRss';
-            }
-          })
-          .catch(() => {
-            watchedState.form.error = 'networkError';
-          });
-      })
-      .catch(() => {
-        watchedState.form.error = 'invalid';
-      });
+    if (validateUrl(url)) {
+      const feed = route(url);
+      axios.get(feed)
+        .then((response) => {
+          const content = response.data.contents;
+          const data = parser(content);
+          if (!data.errors) {
+            watchedState.form.error = 'haveNotErrors';
+            watchedState.urls.push(url);
+            watchedState.currentData = data;
+          } else {
+            watchedState.form.error = 'noRss';
+          }
+        })
+        .catch(() => {
+          watchedState.form.error = 'networkError';
+        });
+    } else {
+      watchedState.form.error = 'invalid';
+    }
+    return null;
   };
 
   const postsUpdate = (state) => {
