@@ -132,7 +132,7 @@ export default async () => {
   };
 
   const validateUrl = (url) => {
-    const matcher = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(\:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(\#[-a-z\d_]*)?$/gi;
+    const matcher = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?([-a-z\d_]*)?$/gi;
     return matcher.test(url);
   };
 
@@ -168,8 +168,8 @@ export default async () => {
     const { urls } = state;
     const feedsRequest = urls.map((url) => axios.get(route(url)));
     Promise.all(feedsRequest)
-      .then((responses) => responses.map((response) => response.data.contents))
-      .then((contents) => {
+      .then((responses) => {
+        const contents = responses.map((response) => response.data.contents);
         const linksOnPage = posts.querySelectorAll('a');
         const hrefs = Array.from(linksOnPage).map((el) => el.href);
         const newPosts = contents.map((post) => parser(post).postsList);
