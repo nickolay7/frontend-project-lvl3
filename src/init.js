@@ -132,7 +132,7 @@ export default async () => {
   };
 
   const validateUrl = (url) => {
-    const matcher = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?([-a-z\d_]*)?$/gi;
+    const matcher = /^https?:\/\/.+\.\w{2,3}\/(.+)?(rss|xml)(.+)?$/gi;
     return matcher.test(url);
   };
 
@@ -143,13 +143,13 @@ export default async () => {
     }
     if (validateUrl(url)) {
       const feed = route(url);
+      watchedState.form.error = 'haveNotErrors';
+      watchedState.urls.push(url);
       axios.get(feed)
         .then((response) => {
           const content = response.data.contents;
           const data = parser(content);
           if (!data.errors) {
-            watchedState.form.error = 'haveNotErrors';
-            watchedState.urls.push(url);
             watchedState.currentData = data;
           } else {
             watchedState.form.error = 'noRss';
