@@ -1,11 +1,13 @@
 export default {
   translation: {
-    errors: {
+    form: {
       empty: 'Mustn\'t be empty',
-      invalid: 'Reference must be valid URL',
+      invalidUrl: 'Reference must be valid URL',
       exist: 'RSS already has',
-      haveNotErrors: 'RSS successfully download',
-      networkError: 'INET error',
+      networkError: 'Network error',
+    },
+    feed: {
+      loaded: 'Feed successfully load',
       noRss: 'Resource doesn\'t contain valid RSS',
     },
     headers: {

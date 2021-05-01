@@ -15,6 +15,7 @@ export default async () => {
   const modalTitle = document.querySelector('.modal-title');
   const modalBody = document.querySelector('.modal-body');
   const fullArticle = document.querySelector('.full-article');
+  const submitButton = form.querySelector('[type="submit"]');
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
 
@@ -97,86 +98,108 @@ export default async () => {
       input.classList.add('is-invalid');
       feedback.classList.add('text-danger');
       feedback.classList.remove('text-success');
+      submitButton.disabled = false;
     }
   };
 
-  const errorsHandler = (errors) => {
-    switch (errors) {
+  const feedbackRender = (state) => {
+    switch (state) {
+      case 'validating':
+        submitButton.disabled = true;
+        break;
       case 'empty':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.empty');
+        feedback.textContent = i18n.t('form.empty');
         break;
       case 'noRss':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.noRss');
+        feedback.textContent = i18n.t('feed.noRss');
         break;
-      case 'invalid':
+      case 'invalidUrl':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.invalid');
+        feedback.textContent = i18n.t('form.invalidUrl');
         break;
       case 'exist':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.exist');
+        feedback.textContent = i18n.t('form.exist');
         break;
-      case 'haveNotErrors':
+      case 'loaded':
         classSwitcher(1);
-        feedback.textContent = i18n.t('errors.haveNotErrors');
+        feedback.textContent = i18n.t('feed.loaded');
+        submitButton.disabled = false;
         break;
-      case 'networkError':
+      case 'errorLoad':
         classSwitcher(0);
-        feedback.textContent = i18n.t('errors.networkError');
+        feedback.textContent = i18n.t('feed.networkError');
         break;
       default:
         break;
     }
   };
 
+  const feedLoad = (url, watchedState) => {
+    const feed = route(url);
+    axios.get(feed)
+      .then((response) => {
+        const content = response.data.contents;
+        const data = parser(content);
+        if (!data.errors) {
+          watchedState.feedLoad = 'loaded';
+          watchedState.urls.push(url);
+          watchedState.currentData = data;
+        } else {
+          watchedState.feedLoad = 'noRss';
+        }
+      })
+      .catch(() => {
+        watchedState.feedLoad = 'errorLoad';
+      });
+  };
+
   const validateUrl = (url) => {
-    const matcher = /^https?:\/\/.+\.\w{2,3}\/(.+)?(rss|xml)(.+)?$/gi;
+    const matcher = /^https?:\/\/.+\.\w{2,3}(.+)?$/i;
     return matcher.test(url);
   };
 
   const validate = (url, watchedState) => {
     if (watchedState.urls.includes(url)) {
-      watchedState.form.error = 'exist';
+      watchedState.form.state = 'exist';
       return null;
     }
     if (validateUrl(url)) {
-      const feed = route(url);
-      watchedState.form.error = 'haveNotErrors';
-      watchedState.urls.push(url);
-      axios.get(feed)
-        .then((response) => {
-          const content = response.data.contents;
-          const data = parser(content);
-          if (!data.errors) {
-            watchedState.currentData = data;
-          } else {
-            watchedState.form.error = 'noRss';
-          }
-        })
-        .catch(() => {
-          watchedState.form.error = 'networkError';
-        });
-    } else {
-      watchedState.form.error = 'invalid';
+      feedLoad(url, watchedState);
+      return null;
     }
+    watchedState.form.state = 'invalidUrl';
     return null;
   };
 
-  const postsUpdate = (state) => {
-    const { urls } = state;
+  const postsUpdate = (watchedState) => {
+    const { urls } = watchedState;
     const feedsRequest = urls.map((url) => axios.get(route(url)));
     Promise.all(feedsRequest)
       .then((responses) => {
+        // get all fids content
         const contents = responses.map((response) => response.data.contents);
+        // get posts lists array
+        const newPostsLists = contents.map((post) => parser(post).postsList);
         const linksOnPage = posts.querySelectorAll('a');
         const hrefs = Array.from(linksOnPage).map((el) => el.href);
-        const newPosts = contents.map((post) => parser(post).postsList);
-        const filtered = newPosts.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)));
-        const ul = posts.querySelector('ul');
-        filtered.forEach((item) => addPosts(ul, item));
-      }).then(() => setTimeout(postsUpdate, 5000, state));
+        // get new posts lists array
+        const filtered = newPostsLists.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)))
+          .filter((el) => el.length !== 0);
+        if (filtered.length !== 0) {
+          watchedState.feedLoad = 'updated';
+          watchedState.newPosts = filtered;
+        }
+      });
+    return setTimeout(postsUpdate, 5000, watchedState);
+  };
+
+  const newPostsRender = (container, data) => {
+    if (data) {
+      data.forEach((item) => addPosts(container, item));
+    }
   };
 
   await i18n.init({
@@ -188,21 +211,30 @@ export default async () => {
   const state = {
     lng: defaultLanguage,
     form: {
-      errors: '',
+      state: '',
     },
+    // feedLoad: '',
     currentData: '',
+    newPosts: '',
     urls: [],
   };
 
   const watchedState = onChange(state, (path, value) => {
+    const ul = posts.querySelector('ul');
     switch (path) {
-      case 'form.error':
-        errorsHandler(value);
+      case 'form.state':
+        feedbackRender(value);
+        break;
+      case 'feedLoad':
+        feedbackRender(value);
         break;
       case 'currentData':
-        feedsRender(state.currentData);
-        postsRender(state.currentData);
-        postsUpdate(state);
+        feedsRender(value);
+        postsRender(value);
+        postsUpdate(watchedState);
+        break;
+      case 'newPosts':
+        newPostsRender(ul, value);
         break;
       default:
         break;
@@ -213,6 +245,7 @@ export default async () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const feed = formData.get('url');
+    watchedState.form.state = 'validating';
     validate(feed, watchedState);
   });
 };

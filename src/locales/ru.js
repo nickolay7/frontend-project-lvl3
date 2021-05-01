@@ -1,12 +1,14 @@
 export default {
   translation: {
-    errors: {
+    form: {
       empty: 'Не должно быть пустым',
-      invalid: 'Ссылка должна быть валидным URL',
+      invalidUrl: 'Ссылка должна быть валидным URL',
       exist: 'RSS уже существует',
-      haveNotErrors: 'RSS успешно загружен',
-      networkError: 'Ошибка сети',
+    },
+    feed: {
+      loaded: 'RSS успешно загружен',
       noRss: 'Ресурс не содержит валидный RSS',
+      networkError: 'Ошибка сети',
     },
     headers: {
       feeds: 'Фиды',
