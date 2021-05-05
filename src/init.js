@@ -4,7 +4,7 @@ import onChange from 'on-change';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
-const route = (url) => `https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`;
+const route = (url) => new URL(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`);
 
 export default async () => {
   const form = document.querySelector('form');
@@ -18,7 +18,10 @@ export default async () => {
   const submitButton = form.querySelector('[type="submit"]');
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
+  const currentData = {};
+  const newPosts = {};
 
+  // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
     const { title, description } = data;
     form.reset();
@@ -41,7 +44,7 @@ export default async () => {
     li.appendChild(h3);
     ul.prepend(li);
   };
-
+  // POSTS_RENDER__________________________________________________________
   const addPosts = (container, data) => {
     data.forEach((post, index) => {
       const li = document.createElement('li');
@@ -88,92 +91,7 @@ export default async () => {
     const ul = posts.querySelector('ul');
     addPosts(ul, postsList);
   };
-
-  const classSwitcher = (success) => {
-    if (success) {
-      input.classList.remove('is-invalid');
-      feedback.classList.remove('text-danger');
-      feedback.classList.add('text-success');
-    } else {
-      input.classList.add('is-invalid');
-      feedback.classList.add('text-danger');
-      feedback.classList.remove('text-success');
-      submitButton.disabled = false;
-    }
-  };
-
-  const feedbackRender = (state) => {
-    switch (state) {
-      case 'validating':
-        submitButton.disabled = true;
-        break;
-      case 'empty':
-        classSwitcher(0);
-        feedback.textContent = i18n.t('form.empty');
-        break;
-      case 'noRss':
-        classSwitcher(0);
-        feedback.textContent = i18n.t('feed.noRss');
-        break;
-      case 'invalidUrl':
-        classSwitcher(0);
-        feedback.textContent = i18n.t('form.invalidUrl');
-        break;
-      case 'exist':
-        classSwitcher(0);
-        feedback.textContent = i18n.t('form.exist');
-        break;
-      case 'loaded':
-        classSwitcher(1);
-        feedback.textContent = i18n.t('feed.loaded');
-        submitButton.disabled = false;
-        break;
-      case 'errorLoad':
-        classSwitcher(0);
-        feedback.textContent = i18n.t('feed.networkError');
-        break;
-      default:
-        break;
-    }
-  };
-
-  const feedLoad = (url, watchedState) => {
-    const feed = route(url);
-    axios.get(feed)
-      .then((response) => {
-        const content = response.data.contents;
-        const data = parser(content);
-        if (!data.errors) {
-          watchedState.feedLoad = 'loaded';
-          watchedState.urls.push(url);
-          watchedState.currentData = data;
-        } else {
-          watchedState.feedLoad = 'noRss';
-        }
-      })
-      .catch(() => {
-        watchedState.feedLoad = 'errorLoad';
-      });
-  };
-
-  const validateUrl = (url) => {
-    const matcher = /^https?:\/\/.+\.\w{2,3}(.+)?$/i;
-    return matcher.test(url);
-  };
-
-  const validate = (url, watchedState) => {
-    if (watchedState.urls.includes(url)) {
-      watchedState.form.state = 'exist';
-      return null;
-    }
-    if (validateUrl(url)) {
-      feedLoad(url, watchedState);
-      return null;
-    }
-    watchedState.form.state = 'invalidUrl';
-    return null;
-  };
-
+  // POSTS_UPDATE__________________________________________________________________________
   const postsUpdate = (watchedState) => {
     const { urls } = watchedState;
     const feedsRequest = urls.map((url) => axios.get(route(url)));
@@ -188,9 +106,9 @@ export default async () => {
         // get new posts lists array
         const filtered = newPostsLists.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)))
           .filter((el) => el.length !== 0);
-        if (filtered.length !== 0) {
+        if (filtered.length > 0) {
+          newPosts.data = filtered;
           watchedState.feedLoad = 'updated';
-          watchedState.newPosts = filtered;
         }
       });
     return setTimeout(postsUpdate, 5000, watchedState);
@@ -201,51 +119,149 @@ export default async () => {
       data.forEach((item) => addPosts(container, item));
     }
   };
+  // FEEDBACK____________________________________________
+  const classSwitcher = (success) => {
+    if (success) {
+      input.classList.remove('is-invalid');
+      feedback.classList.remove('text-danger');
+      feedback.classList.add('text-success');
+    } else {
+      input.classList.add('is-invalid');
+      feedback.classList.add('text-danger');
+      feedback.classList.remove('text-success');
+      submitButton.disabled = false;
+    }
+  };
 
+  const feedbackRender = (value) => {
+    switch (value) {
+      case 'loading':
+        submitButton.disabled = true;
+        break;
+      case 'feed.loaded':
+        classSwitcher(1);
+        feedback.textContent = i18n.t(value);
+        submitButton.disabled = false;
+        break;
+      default:
+        classSwitcher(0);
+        feedback.textContent = i18n.t(value);
+        break;
+    }
+  };
+  // FEED_LOAD____________________________________________________________________
+  const feedLoad = (watchedState) => {
+    watchedState.feedLoad = 'loading';
+    const feed = route(watchedState.urls[0]);
+    axios.get(feed)
+      .then((response) => {
+        const content = response.data.contents;
+        const data = parser(content);
+        if (!data.errors) {
+          currentData.data = data;
+
+          watchedState.feedLoad = 'feed.loaded';
+        } else {
+          watchedState.urls.shift();
+          watchedState.feedLoad = 'feed.noRss';
+        }
+      })
+      .catch(() => {
+        watchedState.feedLoad = 'feed.networkError';
+      });
+  };
+
+  const feedLoadHandler = (value, watchedState) => {
+    const ul = posts.querySelector('ul');
+    switch (value) {
+      case 'feed.noRss':
+        feedbackRender(value);
+        break;
+      case 'feed.networkError':
+        feedbackRender(value);
+        break;
+      case 'feed.loaded':
+        feedsRender(currentData.data);
+        postsRender(currentData.data);
+        feedbackRender(value);
+        postsUpdate(watchedState);
+        break;
+      case 'updated':
+        newPostsRender(ul, newPosts.data);
+        break;
+      default:
+        break;
+    }
+  };
+  // i18init_________________________________________________
   await i18n.init({
     lng: defaultLanguage,
     debug: false,
     resources,
   });
-
+  // STATE__________________________________________________
   const state = {
     lng: defaultLanguage,
     form: {
       state: '',
     },
-    // feedLoad: '',
-    currentData: '',
+    feedLoad: '',
     newPosts: '',
     urls: [],
   };
+  // VALIDATION_________________________________________________
+  const validateUrl = (url) => {
+    const matcher = /^https?:\/\/.+\.\w{2,3}(.+)?$/i;
+    return matcher.test(url);
+  };
+
+  const validate = (url, watchedState) => {
+    if (watchedState.urls.includes(url)) {
+      watchedState.form.state = 'form.exist';
+      return null;
+    }
+    if (validateUrl(url)) {
+      state.urls.unshift(url);
+      watchedState.form.state = 'valid';
+      return null;
+    }
+    watchedState.form.state = 'form.invalid';
+    return null;
+  };
+
+  const formStateHandler = (value, watchedState) => {
+    switch (value) {
+      case 'form.invalid':
+        feedbackRender(value);
+        break;
+      case 'form.exist':
+        feedbackRender(value);
+        break;
+      case 'valid':
+        feedLoad(watchedState);
+        break;
+      default:
+        break;
+    }
+  };
 
   const watchedState = onChange(state, (path, value) => {
-    const ul = posts.querySelector('ul');
     switch (path) {
       case 'form.state':
-        feedbackRender(value);
+        formStateHandler(value, watchedState);
         break;
       case 'feedLoad':
-        feedbackRender(value);
-        break;
-      case 'currentData':
-        feedsRender(value);
-        postsRender(value);
-        postsUpdate(watchedState);
-        break;
-      case 'newPosts':
-        newPostsRender(ul, value);
+        feedLoadHandler(value, watchedState);
         break;
       default:
         break;
     }
   });
-
+  // LISTENER_____________________________________________
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const feed = formData.get('url');
-    watchedState.form.state = 'validating';
-    validate(feed, watchedState);
+    const data = formData.get('url');
+    validate(data, watchedState);
   });
 };

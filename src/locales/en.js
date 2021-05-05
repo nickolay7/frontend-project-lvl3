@@ -2,7 +2,7 @@ export default {
   translation: {
     form: {
       empty: 'Mustn\'t be empty',
-      invalidUrl: 'Reference must be valid URL',
+      invalid: 'Reference must be valid URL',
       exist: 'RSS already has',
       networkError: 'Network error',
     },

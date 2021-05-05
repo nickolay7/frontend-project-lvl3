@@ -2,7 +2,7 @@ export default {
   translation: {
     form: {
       empty: 'Не должно быть пустым',
-      invalidUrl: 'Ссылка должна быть валидным URL',
+      invalid: 'Ссылка должна быть валидным URL',
       exist: 'RSS уже существует',
     },
     feed: {
