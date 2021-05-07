@@ -93,6 +93,7 @@ export default async () => {
   };
   // POSTS_UPDATE__________________________________________________________________________
   const postsUpdate = (watchedState) => {
+    watchedState.feedLoad = '';
     const { urls } = watchedState;
     const feedsRequest = urls.map((url) => axios.get(route(url)));
     Promise.all(feedsRequest)
@@ -159,8 +160,8 @@ export default async () => {
         const data = parser(content);
         if (!data.errors) {
           currentData.data = data;
-
           watchedState.feedLoad = 'feed.loaded';
+          watchedState.form.state = '';
         } else {
           watchedState.urls.shift();
           watchedState.feedLoad = 'feed.noRss';
@@ -221,7 +222,7 @@ export default async () => {
       return null;
     }
     if (validateUrl(url)) {
-      state.urls.unshift(url);
+      watchedState.urls.unshift(url);
       watchedState.form.state = 'valid';
       return null;
     }
