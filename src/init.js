@@ -1,6 +1,7 @@
 import i18next from 'i18next';
 import axios from 'axios';
 import onChange from 'on-change';
+import * as yup from 'yup';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
@@ -19,7 +20,6 @@ export default async () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
   const currentData = {};
-  const newPosts = {};
 
   // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
@@ -93,9 +93,9 @@ export default async () => {
   };
   // POSTS_UPDATE__________________________________________________________________________
   const postsUpdate = (watchedState) => {
-    watchedState.feedLoad = '';
+    const postsContainer = posts.querySelector('ul');
     const { urls } = watchedState;
-    const feedsRequest = urls.map((url) => axios.get(route(url)));
+    const feedsRequest = urls.map((url) => axios.get(route(url)).catch(() => []));
     Promise.all(feedsRequest)
       .then((responses) => {
         // get all fids content
@@ -107,18 +107,9 @@ export default async () => {
         // get new posts lists array
         const filtered = newPostsLists.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)))
           .filter((el) => el.length !== 0);
-        if (filtered.length > 0) {
-          newPosts.data = filtered;
-          watchedState.feedLoad = 'updated';
-        }
+        filtered.forEach((item) => addPosts(postsContainer, item));
       });
     return setTimeout(postsUpdate, 5000, watchedState);
-  };
-
-  const newPostsRender = (container, data) => {
-    if (data) {
-      data.forEach((item) => addPosts(container, item));
-    }
   };
   // FEEDBACK____________________________________________
   const classSwitcher = (success) => {
@@ -172,8 +163,7 @@ export default async () => {
       });
   };
 
-  const feedLoadHandler = (value, watchedState) => {
-    const ul = posts.querySelector('ul');
+  const feedLoadHandler = (value) => {
     switch (value) {
       case 'feed.noRss':
         feedbackRender(value);
@@ -185,10 +175,6 @@ export default async () => {
         feedsRender(currentData.data);
         postsRender(currentData.data);
         feedbackRender(value);
-        postsUpdate(watchedState);
-        break;
-      case 'updated':
-        newPostsRender(ul, newPosts.data);
         break;
       default:
         break;
@@ -207,22 +193,27 @@ export default async () => {
       state: '',
     },
     feedLoad: '',
-    newPosts: '',
     urls: [],
   };
   // VALIDATION_________________________________________________
-  const validateUrl = (url) => {
-    const matcher = /^https?:\/\/.+\.\w{2,3}(.+)?$/i;
-    return matcher.test(url);
+  const schema = yup.string().url().required();
+
+  const isValidUrl = (url) => {
+    try {
+      schema.validateSync(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 
-  const validate = (url, watchedState) => {
-    if (watchedState.urls.includes(url)) {
+  const formDataHandler = (data, watchedState) => {
+    if (watchedState.urls.includes(data)) {
       watchedState.form.state = 'form.exist';
       return null;
     }
-    if (validateUrl(url)) {
-      watchedState.urls.unshift(url);
+    if (isValidUrl(data)) {
+      watchedState.urls.unshift(data);
       watchedState.form.state = 'valid';
       return null;
     }
@@ -252,7 +243,7 @@ export default async () => {
         formStateHandler(value, watchedState);
         break;
       case 'feedLoad':
-        feedLoadHandler(value, watchedState);
+        feedLoadHandler(value);
         break;
       default:
         break;
@@ -263,6 +254,7 @@ export default async () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = formData.get('url');
-    validate(data, watchedState);
+    formDataHandler(data, watchedState);
   });
+  postsUpdate(watchedState);
 };
