@@ -3,7 +3,14 @@ export default (xml) => {
   const doc = parser.parseFromString(xml, 'application/xml');
   const title = doc.querySelector('title');
   const description = doc.querySelector('description');
-  const postsList = doc.querySelectorAll('item');
+  const posts = doc.querySelectorAll('item');
+  const postsList = [...posts].map((post) => {
+    const pubDate = new Date(post.querySelector('pubDate').textContent);
+    const postTitle = post.querySelector('title').textContent;
+    const postDescription = post.querySelector('description').textContent;
+    const link = post.querySelector('link').textContent;
+    return { postTitle, postDescription, pubDate, link };
+  })
   const errors = doc.querySelector('parsererror');
   return {
     errors, title, description, postsList,
