@@ -4,11 +4,11 @@ export default {
       empty: 'Mustn\'t be empty',
       invalid: 'Reference must be valid URL',
       exist: 'RSS already has',
-      networkError: 'Network error',
     },
     feed: {
-      loaded: 'Feed successfully load',
+      loaded: 'RSS successfully load',
       noRss: 'Resource doesn\'t contain valid RSS',
+      networkError: 'Network error',
     },
     headers: {
       feeds: 'Feeds',
