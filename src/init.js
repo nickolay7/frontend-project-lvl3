@@ -2,6 +2,7 @@ import i18next from 'i18next';
 import axios from 'axios';
 import onChange from 'on-change';
 import * as yup from 'yup';
+import _ from 'lodash';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
@@ -20,6 +21,8 @@ export default async () => {
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
   const currentData = {};
+  const listsDb = [];
+  const urls = [];
 
   // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
@@ -47,30 +50,28 @@ export default async () => {
   // POSTS_RENDER__________________________________________________________
   const addPosts = (container, data) => {
     data.forEach((post, index) => {
+      const { postTitle, postDescription, link } = post;
       const li = document.createElement('li');
       const a = document.createElement('a');
       const button = document.createElement('button');
-      const title = post.querySelector('title').textContent;
-      const description = post.querySelector('description').textContent;
-      const href = post.querySelector('link').textContent;
       li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start');
       a.classList.add('font-weight-bold');
       a.dataset.id = index;
       a.setAttribute('target', '_blank');
-      a.setAttribute('href', href);
+      a.setAttribute('href', link);
       button.setAttribute('type', 'button');
       button.classList.add('btn', 'btn-primary', 'btn-sm');
       button.dataset.id = index;
       button.dataset.toggle = 'modal';
       button.dataset.target = '#modal';
-      a.textContent = title;
+      a.textContent = postTitle;
       button.textContent = 'Просмотр';
       li.appendChild(a);
       li.appendChild(button);
       button.addEventListener('click', () => {
-        modalTitle.textContent = title;
-        modalBody.textContent = description;
-        fullArticle.setAttribute('href', href);
+        modalTitle.textContent = postTitle;
+        modalBody.textContent = postDescription;
+        fullArticle.setAttribute('href', link);
         a.classList.remove('font-weight-bold');
         a.classList.add('font-weight-normal');
       });
@@ -92,24 +93,35 @@ export default async () => {
     addPosts(ul, postsList);
   };
   // POSTS_UPDATE__________________________________________________________________________
-  const postsUpdate = (watchedState) => {
-    const postsContainer = posts.querySelector('ul');
-    const { urls } = watchedState;
-    const feedsRequest = urls.map((url) => axios.get(route(url)).catch(() => []));
+  const postsUpdate = (watchedState, data) => {
+    const feedsRequest = data.map((url) => axios.get(route(url)).catch(() => []));
     Promise.all(feedsRequest)
       .then((responses) => {
         // get all fids content
-        const contents = responses.map((response) => response.data.contents);
+        const contents = responses.map((response) => {
+          if (response.length !== 0) {
+            return response.data.contents;
+          }
+          return null;
+        });
         // get posts lists array
         const newPostsLists = contents.map((post) => parser(post).postsList);
-        const linksOnPage = posts.querySelectorAll('a');
-        const hrefs = Array.from(linksOnPage).map((el) => el.href);
         // get new posts lists array
-        const filtered = newPostsLists.map((item) => Array.from(item).filter((el) => !hrefs.includes(el.querySelector('link').textContent)))
+        const filtered = newPostsLists
+          .map((items) => _.differenceBy([...items], listsDb.flat(2), 'link'))
           .filter((el) => el.length !== 0);
-        filtered.forEach((item) => addPosts(postsContainer, item));
-      });
-    return setTimeout(postsUpdate, 5000, watchedState);
+        if (filtered.length !== 0) {
+          listsDb.push(filtered);
+        }
+        currentData.data = filtered;
+        // watchedState.feedLoad = 'updated';
+        const container = posts.querySelector('ul');
+        if (container) {
+          filtered.forEach((item) => addPosts(container, item));
+        }
+      })
+      .then(() => setTimeout(postsUpdate, 5000, watchedState, data));
+    // return
   };
   // FEEDBACK____________________________________________
   const classSwitcher = (success) => {
@@ -144,7 +156,7 @@ export default async () => {
   // FEED_LOAD____________________________________________________________________
   const feedLoad = (watchedState) => {
     watchedState.feedLoad = 'loading';
-    const feed = route(watchedState.urls[0]);
+    const feed = route(urls[0]);
     axios.get(feed)
       .then((response) => {
         const content = response.data.contents;
@@ -153,13 +165,16 @@ export default async () => {
           currentData.data = data;
           watchedState.feedLoad = 'feed.loaded';
           watchedState.form.state = '';
+          listsDb.push(data.postsList);
         } else {
-          watchedState.urls.shift();
+          urls.shift();
           watchedState.feedLoad = 'feed.noRss';
         }
       })
       .catch(() => {
+        urls.shift();
         watchedState.feedLoad = 'feed.networkError';
+        console.log(urls);
       });
   };
 
@@ -176,6 +191,10 @@ export default async () => {
         postsRender(currentData.data);
         feedbackRender(value);
         break;
+      // case 'updated':
+      //   // console.log(currentData.data);
+      //   addPosts(container, currentData.data);
+      //   break;
       default:
         break;
     }
@@ -193,7 +212,6 @@ export default async () => {
       state: '',
     },
     feedLoad: '',
-    urls: [],
   };
   // VALIDATION_________________________________________________
   const schema = yup.string().url().required();
@@ -208,12 +226,12 @@ export default async () => {
   };
 
   const formDataHandler = (data, watchedState) => {
-    if (watchedState.urls.includes(data)) {
+    if (urls.includes(data)) {
       watchedState.form.state = 'form.exist';
       return null;
     }
     if (isValidUrl(data)) {
-      watchedState.urls.unshift(data);
+      urls.unshift(data);
       watchedState.form.state = 'valid';
       return null;
     }
@@ -256,5 +274,5 @@ export default async () => {
     const data = formData.get('url');
     formDataHandler(data, watchedState);
   });
-  postsUpdate(watchedState);
+  postsUpdate(watchedState, urls);
 };
