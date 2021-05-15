@@ -145,6 +145,7 @@ export default async () => {
     switch (message) {
       case 'loading':
         submitButton.disabled = true;
+        input.setAttribute('readonly', 'readonly');
         break;
       // case 'form.invalid':
       //   classSwitcher(0);
@@ -155,11 +156,13 @@ export default async () => {
         classSwitcher(1);
         feedback.textContent = i18n.t(message);
         submitButton.disabled = false;
+        input.removeAttribute('readonly');
         break;
       default:
         classSwitcher(0);
         submitButton.disabled = false;
         feedback.textContent = i18n.t(message);
+        input.removeAttribute('readonly');
         break;
     }
   };
