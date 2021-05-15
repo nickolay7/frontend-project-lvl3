@@ -146,19 +146,20 @@ export default async () => {
       case 'loading':
         submitButton.disabled = true;
         break;
-      case 'form.invalid':
-        classSwitcher(0);
-        submitButton.disabled = false;
-        feedback.textContent = i18n.t(value);
-        break;
+      // case 'form.invalid':
+      //   classSwitcher(0);
+      //   submitButton.disabled = false;
+      //   feedback.textContent = i18n.t(value);
+      //   break;
       case 'feed.loaded':
         classSwitcher(1);
         feedback.textContent = i18n.t(value);
         submitButton.disabled = false;
         break;
       default:
-        // classSwitcher(0);
-        // feedback.textContent = i18n.t(value);
+        classSwitcher(0);
+        submitButton.disabled = false;
+        feedback.textContent = i18n.t(value);
         break;
     }
   };
@@ -180,12 +181,11 @@ export default async () => {
     urls: [],
   };
   // VALIDATION_________________________________________________
-  const schema = yup.string()
+  const validate = (data) => yup
+    .string()
     .url('isInvalidUrl')
     .required('requiredString')
-    .notOneOf(state.urls, 'alreadyHasUrl');
-
-  const validate = (data) => schema.validate(data);
+    .notOneOf(state.urls, 'alreadyHasUrl').validate(data);
 
   const formStateHandler = (value, watchedState) => {
     switch (value) {
@@ -200,9 +200,9 @@ export default async () => {
       // case 'form.invalid':
       //  feedbackRender(value);
       //   break;
-      // case 'form.exist':
-      //   feedbackRender(value);
-      //   break;
+      case 'form.exist':
+        feedbackRender(value);
+        break;
       // case 'valid':
       //   feedLoad(watchedState);
       //   break;
@@ -241,7 +241,7 @@ export default async () => {
           if (!data.errors) {
             currentData.data = data;
             watchedState.form.state = 'feed.loaded';
-            state.urls.unshift(url);
+            state.urls.push(url);
             // console.log(state.urls)
             listsDb.push(data.postsList);
           } else {
@@ -249,7 +249,7 @@ export default async () => {
           }
         })
         .catch(() => {
-          state.urls.shift();
+          // state.urls.shift();
           watchedState.feedLoad = 'feed.networkError';
           // console.log(urls);
         })
@@ -258,6 +258,9 @@ export default async () => {
       console.log(err.message);
       if(err.message === 'isInvalidUrl') {
         watchedState.error = 'form.invalid';
+      }
+      if(err.message === 'alreadyHasUrl') {
+        watchedState.error = 'form.exist';
       }
     });
   });
