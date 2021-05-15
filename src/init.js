@@ -6,7 +6,12 @@ import _ from 'lodash';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
-const route = (url) => new URL(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${url}`);
+const route = () => new URL('https://hexlet-allorigins.herokuapp.com/get?disableCache=true');
+const getQueryString = (data) => {
+  const url = route();
+  url.searchParams.append('url', data);
+  return url.href;
+}
 
 export default async () => {
   const form = document.querySelector('form');
@@ -22,7 +27,6 @@ export default async () => {
   const i18n = i18next.createInstance();
   const currentData = {};
   const listsDb = [];
-  const urls = [];
 
   // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
@@ -142,63 +146,23 @@ export default async () => {
       case 'loading':
         submitButton.disabled = true;
         break;
+      case 'form.invalid':
+        classSwitcher(0);
+        submitButton.disabled = false;
+        feedback.textContent = i18n.t(value);
+        break;
       case 'feed.loaded':
         classSwitcher(1);
         feedback.textContent = i18n.t(value);
         submitButton.disabled = false;
         break;
       default:
-        classSwitcher(0);
-        feedback.textContent = i18n.t(value);
+        // classSwitcher(0);
+        // feedback.textContent = i18n.t(value);
         break;
     }
-  };
-  // FEED_LOAD____________________________________________________________________
-  const feedLoad = (watchedState) => {
-    watchedState.feedLoad = 'loading';
-    const feed = route(urls[0]);
-    axios.get(feed)
-      .then((response) => {
-        const content = response.data.contents;
-        const data = parser(content);
-        if (!data.errors) {
-          currentData.data = data;
-          watchedState.feedLoad = 'feed.loaded';
-          watchedState.form.state = '';
-          listsDb.push(data.postsList);
-        } else {
-          urls.shift();
-          watchedState.feedLoad = 'feed.noRss';
-        }
-      })
-      .catch(() => {
-        urls.shift();
-        watchedState.feedLoad = 'feed.networkError';
-        console.log(urls);
-      });
   };
 
-  const feedLoadHandler = (value) => {
-    switch (value) {
-      case 'feed.noRss':
-        feedbackRender(value);
-        break;
-      case 'feed.networkError':
-        feedbackRender(value);
-        break;
-      case 'feed.loaded':
-        feedsRender(currentData.data);
-        postsRender(currentData.data);
-        feedbackRender(value);
-        break;
-      // case 'updated':
-      //   // console.log(currentData.data);
-      //   addPosts(container, currentData.data);
-      //   break;
-      default:
-        break;
-    }
-  };
   // i18init_________________________________________________
   await i18n.init({
     lng: defaultLanguage,
@@ -212,44 +176,36 @@ export default async () => {
       state: '',
     },
     feedLoad: '',
+    error: '',
+    urls: [],
   };
   // VALIDATION_________________________________________________
-  const schema = yup.string().url().required();
+  const schema = yup.string()
+    .url('isInvalidUrl')
+    .required('requiredString')
+    .notOneOf(state.urls, 'alreadyHasUrl');
 
-  const isValidUrl = (url) => {
-    try {
-      schema.validateSync(url);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const formDataHandler = (data, watchedState) => {
-    if (urls.includes(data)) {
-      watchedState.form.state = 'form.exist';
-      return null;
-    }
-    if (isValidUrl(data)) {
-      urls.unshift(data);
-      watchedState.form.state = 'valid';
-      return null;
-    }
-    watchedState.form.state = 'form.invalid';
-    return null;
-  };
+  const validate = (data) => schema.validate(data);
 
   const formStateHandler = (value, watchedState) => {
     switch (value) {
-      case 'form.invalid':
+      case 'loading':
         feedbackRender(value);
         break;
-      case 'form.exist':
+      case 'feed.loaded':
+        feedsRender(currentData.data);
+        postsRender(currentData.data);
         feedbackRender(value);
         break;
-      case 'valid':
-        feedLoad(watchedState);
-        break;
+      // case 'form.invalid':
+      //  feedbackRender(value);
+      //   break;
+      // case 'form.exist':
+      //   feedbackRender(value);
+      //   break;
+      // case 'valid':
+      //   feedLoad(watchedState);
+      //   break;
       default:
         break;
     }
@@ -260,19 +216,50 @@ export default async () => {
       case 'form.state':
         formStateHandler(value, watchedState);
         break;
-      case 'feedLoad':
-        feedLoadHandler(value);
+      // case 'feedLoad':
+      //   feedLoadHandler(value);
+      //   break;
+      case 'error':
+        feedbackRender(value);
         break;
       default:
         break;
     }
-  });
-  // LISTENER_____________________________________________
+  })
+
+ // LISTENER_____________________________________________
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = formData.get('url');
-    formDataHandler(data, watchedState);
+    const url = formData.get('url');
+    watchedState.form.state = 'loading';
+    validate(url).then(() => {
+      axios.get(getQueryString(url))
+        .then((response) => {
+          const content = response.data.contents;
+          const data = parser(content);
+          if (!data.errors) {
+            currentData.data = data;
+            watchedState.form.state = 'feed.loaded';
+            state.urls.unshift(url);
+            // console.log(state.urls)
+            listsDb.push(data.postsList);
+          } else {
+            watchedState.form.state = 'feed.noRss';
+          }
+        })
+        .catch(() => {
+          state.urls.shift();
+          watchedState.feedLoad = 'feed.networkError';
+          // console.log(urls);
+        })
+    })
+    .catch((err) => {
+      console.log(err.message);
+      if(err.message === 'isInvalidUrl') {
+        watchedState.error = 'form.invalid';
+      }
+    });
   });
-  postsUpdate(watchedState, urls);
+  // postsUpdate(watchedState, urls);
 };
