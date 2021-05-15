@@ -141,8 +141,8 @@ export default async () => {
     }
   };
 
-  const feedbackRender = (value) => {
-    switch (value) {
+  const feedbackRender = (message) => {
+    switch (message) {
       case 'loading':
         submitButton.disabled = true;
         break;
@@ -153,13 +153,13 @@ export default async () => {
       //   break;
       case 'feed.loaded':
         classSwitcher(1);
-        feedback.textContent = i18n.t(value);
+        feedback.textContent = i18n.t(message);
         submitButton.disabled = false;
         break;
       default:
         classSwitcher(0);
         submitButton.disabled = false;
-        feedback.textContent = i18n.t(value);
+        feedback.textContent = i18n.t(message);
         break;
     }
   };
@@ -177,13 +177,13 @@ export default async () => {
       state: '',
     },
     feedLoad: '',
-    error: '',
+    // error: '',
     urls: [],
   };
   // VALIDATION_________________________________________________
   const validate = (data) => yup
     .string()
-    .url('isInvalidUrl')
+    .url('invalidUrl')
     .required('requiredString')
     .notOneOf(state.urls, 'alreadyHasUrl')
     .validate(data);
@@ -245,18 +245,18 @@ export default async () => {
             // console.log(state.urls)
             listsDb.push(data.postsList);
           } else {
-            watchedState.form.state = 'feed.noRss';
+            watchedState.error = 'feed.noRss';
           }
         })
         .catch(() => {
           // state.urls.shift();
-          watchedState.feedLoad = 'feed.networkError';
+          watchedState.error = 'feed.networkError';
           // console.log(urls);
         });
     })
       .catch((err) => {
         console.log(err.message);
-        if (err.message === 'isInvalidUrl') {
+        if (err.message === 'invalidUrl') {
           watchedState.error = 'form.invalid';
         }
         if (err.message === 'alreadyHasUrl') {
