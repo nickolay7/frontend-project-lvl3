@@ -11,7 +11,7 @@ const getQueryString = (data) => {
   const url = route();
   url.searchParams.append('url', data);
   return url.href;
-}
+};
 
 export default async () => {
   const form = document.querySelector('form');
@@ -185,9 +185,10 @@ export default async () => {
     .string()
     .url('isInvalidUrl')
     .required('requiredString')
-    .notOneOf(state.urls, 'alreadyHasUrl').validate(data);
+    .notOneOf(state.urls, 'alreadyHasUrl')
+    .validate(data);
 
-  const formStateHandler = (value, watchedState) => {
+  const formStateHandler = (value) => {
     switch (value) {
       case 'loading':
         feedbackRender(value);
@@ -225,9 +226,8 @@ export default async () => {
       default:
         break;
     }
-  })
-
- // LISTENER_____________________________________________
+  });
+  // LISTENER_____________________________________________
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -252,17 +252,17 @@ export default async () => {
           // state.urls.shift();
           watchedState.feedLoad = 'feed.networkError';
           // console.log(urls);
-        })
+        });
     })
-    .catch((err) => {
-      console.log(err.message);
-      if(err.message === 'isInvalidUrl') {
-        watchedState.error = 'form.invalid';
-      }
-      if(err.message === 'alreadyHasUrl') {
-        watchedState.error = 'form.exist';
-      }
-    });
+      .catch((err) => {
+        console.log(err.message);
+        if (err.message === 'isInvalidUrl') {
+          watchedState.error = 'form.invalid';
+        }
+        if (err.message === 'alreadyHasUrl') {
+          watchedState.error = 'form.exist';
+        }
+      });
   });
   // postsUpdate(watchedState, urls);
 };
