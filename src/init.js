@@ -98,7 +98,7 @@ export default async () => {
   };
   // POSTS_UPDATE__________________________________________________________________________
   const postsUpdate = (watchedState, data) => {
-    const feedsRequest = data.map((url) => axios.get(route(url)).catch(() => []));
+    const feedsRequest = data.map((url) => axios.get(getQueryString(url)).catch(() => []));
     Promise.all(feedsRequest)
       .then((responses) => {
         // get all fids content
@@ -263,5 +263,5 @@ export default async () => {
         }
       });
   });
-  // postsUpdate(watchedState, urls);
+  postsUpdate(watchedState, state.urls);
 };
