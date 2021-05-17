@@ -49,7 +49,7 @@ export default async () => {
     p.textContent = description.textContent;
     li.appendChild(p);
     li.appendChild(h3);
-    ul.prepend(li);
+    ul.append(li);
   };
   // POSTS_RENDER__________________________________________________________
   const addPosts = (container, data) => {
@@ -79,7 +79,7 @@ export default async () => {
         a.classList.remove('font-weight-bold');
         a.classList.add('font-weight-normal');
       });
-      container.prepend(li);
+      container.append(li);
     });
   };
 
@@ -160,8 +160,8 @@ export default async () => {
         break;
       default:
         classSwitcher(0);
-        submitButton.disabled = false;
         feedback.textContent = i18n.t(message);
+        submitButton.disabled = false;
         input.removeAttribute('readonly');
         break;
     }
@@ -180,7 +180,7 @@ export default async () => {
       state: '',
     },
     feedLoad: '',
-    // error: '',
+    error: '',
     urls: [],
   };
   // VALIDATION_________________________________________________
@@ -220,9 +220,6 @@ export default async () => {
       case 'form.state':
         formStateHandler(value, watchedState);
         break;
-      // case 'feedLoad':
-      //   feedLoadHandler(value);
-      //   break;
       case 'error':
         feedbackRender(value);
         break;
@@ -258,7 +255,6 @@ export default async () => {
         });
     })
       .catch((err) => {
-        console.log(err.message);
         if (err.message === 'invalidUrl') {
           watchedState.error = 'form.invalid';
         }
