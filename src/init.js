@@ -6,11 +6,11 @@ import _ from 'lodash';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
-const route = () => new URL('https://hexlet-allorigins.herokuapp.com/get?disableCache=true');
 const getQueryString = (data) => {
-  const url = route();
-  url.searchParams.append('url', data);
-  return url.href;
+  const url = new URL('get', 'https://hexlet-allorigins.herokuapp.com');
+  url.searchParams.set('disableCache', 'true');
+  url.searchParams.set('url', data);
+  return url.toString();
 };
 
 export default async () => {
