@@ -25,9 +25,18 @@ export default async () => {
   const submitButton = form.querySelector('[type="submit"]');
   const defaultLanguage = 'ru';
   const i18n = i18next.createInstance();
-  const currentData = {};
-  const listsDb = [];
-
+  // STATE__________________________________________________
+  const state = {
+    lng: defaultLanguage,
+    form: {
+      state: '',
+    },
+    feedLoad: '',
+    error: '',
+    urls: [],
+    currentData: [],
+    listsDb: [],
+  };
   // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
     const { title, description } = data;
@@ -112,12 +121,12 @@ export default async () => {
         const newPostsLists = contents.map((post) => parser(post).postsList);
         // get new posts lists array
         const filtered = newPostsLists
-          .map((items) => _.differenceBy([...items], listsDb.flat(2), 'link'))
+          .map((items) => _.differenceBy([...items], watchedState.listsDb.flat(2), 'link'))
           .filter((el) => el.length !== 0);
         if (filtered.length !== 0) {
-          listsDb.push(filtered);
+          watchedState.listsDb.push(filtered);
         }
-        currentData.data = filtered;
+        state.currentData = filtered;
         // watchedState.feedLoad = 'updated';
         const container = posts.querySelector('ul');
         if (container) {
@@ -173,16 +182,6 @@ export default async () => {
     debug: false,
     resources,
   });
-  // STATE__________________________________________________
-  const state = {
-    lng: defaultLanguage,
-    form: {
-      state: '',
-    },
-    feedLoad: '',
-    error: '',
-    urls: [],
-  };
   // VALIDATION_________________________________________________
   const validate = (data) => yup
     .string()
@@ -197,8 +196,8 @@ export default async () => {
         feedbackRender(value);
         break;
       case 'feed.loaded':
-        feedsRender(currentData.data);
-        postsRender(currentData.data);
+        feedsRender(state.currentData);
+        postsRender(state.currentData);
         feedbackRender(value);
         break;
       // case 'form.invalid':
@@ -239,11 +238,10 @@ export default async () => {
           const content = response.data.contents;
           const data = parser(content);
           if (!data.errors) {
-            currentData.data = data;
-            watchedState.form.state = 'feed.loaded';
             state.urls.push(url);
-            // console.log(state.urls)
-            listsDb.push(data.postsList);
+            watchedState.listsDb.push(data.postsList);
+            watchedState.currentData = data;
+            watchedState.form.state = 'feed.loaded';
           } else {
             watchedState.error = 'feed.noRss';
           }
