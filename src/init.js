@@ -129,7 +129,6 @@ export default async () => {
           watchedState.data.listsDb.push(filtered);
         }
         state.data.currentData = filtered;
-        // watchedState.feedLoad = 'updated';
         const container = posts.querySelector('ul');
         if (container) {
           filtered.forEach((item) => addPosts(container, item));
@@ -246,19 +245,17 @@ export default async () => {
           }
         })
         .catch(() => {
-          // state.urls.shift();
           watchedState.error = 'feed.networkError';
-          // console.log(urls);
         });
     })
-    .catch((err) => {
-      if (err.message === 'invalidUrl') {
-        watchedState.error = 'form.invalid';
-      }
-      if (err.message === 'urlAlreadyHas') {
-        watchedState.error = 'form.exist';
-      }
-    });
+      .catch((err) => {
+        if (err.message === 'invalidUrl') {
+          watchedState.error = 'form.invalid';
+        }
+        if (err.message === 'urlAlreadyHas') {
+          watchedState.error = 'form.exist';
+        }
+      });
   });
   postsUpdate(watchedState, state.data.urls);
 };
