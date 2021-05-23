@@ -31,11 +31,13 @@ export default async () => {
     form: {
       state: '',
     },
-    feedLoad: '',
+    feedLoadingState: '',
     error: '',
-    urls: [],
-    currentData: [],
-    listsDb: [],
+    data: {
+      urls: [],
+      currentData: [],
+      listsDb: [],
+    },
   };
   // FEED_RENDER_______________________________________________
   const feedsRender = (data) => {
@@ -121,12 +123,12 @@ export default async () => {
         const newPostsLists = contents.map((post) => parser(post).postsList);
         // get new posts lists array
         const filtered = newPostsLists
-          .map((items) => _.differenceBy([...items], watchedState.listsDb.flat(2), 'link'))
+          .map((items) => _.differenceBy([...items], watchedState.data.listsDb.flat(2), 'link'))
           .filter((el) => el.length !== 0);
         if (filtered.length !== 0) {
-          watchedState.listsDb.push(filtered);
+          watchedState.data.listsDb.push(filtered);
         }
-        state.currentData = filtered;
+        state.data.currentData = filtered;
         // watchedState.feedLoad = 'updated';
         const container = posts.querySelector('ul');
         if (container) {
@@ -137,38 +139,21 @@ export default async () => {
     // return
   };
   // FEEDBACK____________________________________________
-  const classSwitcher = (success) => {
-    if (success) {
-      input.classList.remove('is-invalid');
-      feedback.classList.remove('text-danger');
-      feedback.classList.add('text-success');
-    } else {
-      input.classList.add('is-invalid');
-      feedback.classList.add('text-danger');
-      feedback.classList.remove('text-success');
-      submitButton.disabled = false;
-    }
-  };
-
   const feedbackRender = (message) => {
     switch (message) {
-      case 'loading':
-        submitButton.disabled = true;
-        input.setAttribute('readonly', 'readonly');
-        break;
-      // case 'form.invalid':
-      //   classSwitcher(0);
-      //   submitButton.disabled = false;
-      //   feedback.textContent = i18n.t(value);
-      //   break;
       case 'feed.loaded':
-        classSwitcher(1);
+        input.classList.remove('is-invalid');
+        feedback.classList.remove('text-danger');
+        feedback.classList.add('text-success');
         feedback.textContent = i18n.t(message);
         submitButton.disabled = false;
         input.removeAttribute('readonly');
         break;
       default:
-        classSwitcher(0);
+        input.classList.add('is-invalid');
+        feedback.classList.add('text-danger');
+        feedback.classList.remove('text-success');
+        submitButton.disabled = false;
         feedback.textContent = i18n.t(message);
         submitButton.disabled = false;
         input.removeAttribute('readonly');
@@ -187,17 +172,17 @@ export default async () => {
     .string()
     .url('invalidUrl')
     .required('requiredString')
-    .notOneOf(state.urls, 'alreadyHasUrl')
+    .notOneOf(state.data.urls, 'urlAlreadyHas')
     .validate(data);
-
+  // HANDLERS
   const formStateHandler = (value) => {
     switch (value) {
       case 'loading':
         feedbackRender(value);
         break;
       case 'feed.loaded':
-        feedsRender(state.currentData);
-        postsRender(state.currentData);
+        feedsRender(state.data.currentData);
+        postsRender(state.data.currentData);
         feedbackRender(value);
         break;
       // case 'form.invalid':
@@ -214,10 +199,24 @@ export default async () => {
     }
   };
 
+  const feedLoadingHandler = (message) => {
+    switch (message) {
+      case 'loading':
+        submitButton.disabled = true;
+        input.setAttribute('readonly', 'readonly');
+        break;
+      default:
+        break;
+    }
+  };
+  // WATCHED_STATE
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form.state':
         formStateHandler(value, watchedState);
+        break;
+      case 'feedLoadingState':
+        feedLoadingHandler(value);
         break;
       case 'error':
         feedbackRender(value);
@@ -231,16 +230,16 @@ export default async () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const url = formData.get('url');
-    watchedState.form.state = 'loading';
+    watchedState.feedLoadingState = 'loading';
     validate(url).then(() => {
       axios.get(getQueryString(url))
         .then((response) => {
           const content = response.data.contents;
           const data = parser(content);
           if (!data.errors) {
-            state.urls.push(url);
-            watchedState.listsDb.push(data.postsList);
-            watchedState.currentData = data;
+            state.data.urls.push(url);
+            watchedState.data.listsDb.push(data.postsList);
+            watchedState.data.currentData = data;
             watchedState.form.state = 'feed.loaded';
           } else {
             watchedState.error = 'feed.noRss';
@@ -252,14 +251,14 @@ export default async () => {
           // console.log(urls);
         });
     })
-      .catch((err) => {
-        if (err.message === 'invalidUrl') {
-          watchedState.error = 'form.invalid';
-        }
-        if (err.message === 'alreadyHasUrl') {
-          watchedState.error = 'form.exist';
-        }
-      });
+    .catch((err) => {
+      if (err.message === 'invalidUrl') {
+        watchedState.error = 'form.invalid';
+      }
+      if (err.message === 'urlAlreadyHas') {
+        watchedState.error = 'form.exist';
+      }
+    });
   });
-  postsUpdate(watchedState, state.urls);
+  postsUpdate(watchedState, state.data.urls);
 };
