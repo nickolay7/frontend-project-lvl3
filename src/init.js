@@ -38,30 +38,7 @@ export default async () => {
       listsDb: [],
     },
   };
-  // FEED_RENDER_______________________________________________
-  const feedsRender = (data) => {
-    const { title, description } = data;
-    form.reset();
-    if (!feeds.querySelector('h2')) {
-      const h2 = document.createElement('h2');
-      const ul = document.createElement('ul');
-      ul.classList.add('list-group', 'mb-5');
-      h2.textContent = i18n.t('headers.feeds');
-      feeds.appendChild(h2);
-      feeds.appendChild(ul);
-    }
-    const ul = feeds.querySelector('ul');
-    const li = document.createElement('li');
-    const h3 = document.createElement('h3');
-    const p = document.createElement('p');
-    li.classList.add('list-group-item');
-    h3.textContent = title.textContent;
-    p.textContent = description.textContent;
-    li.appendChild(p);
-    li.appendChild(h3);
-    ul.append(li);
-  };
-  // POSTS_RENDER__________________________________________________________
+  // RENDER_______________________________________________
   const addPosts = (container, data) => {
     data.forEach((post, index) => {
       const { postTitle, postDescription, link } = post;
@@ -93,9 +70,28 @@ export default async () => {
     });
   };
 
-  const postsRender = (message, data) => {
+  const render = (message, data) => {
+    form.reset();
     if (data) {
-      const { postsList } = data;
+      const { title, description, postsList } = data;
+      if (!feeds.querySelector('h2')) {
+        const h2 = document.createElement('h2');
+        const ul = document.createElement('ul');
+        ul.classList.add('list-group', 'mb-5');
+        h2.textContent = i18n.t('headers.feeds');
+        feeds.appendChild(h2);
+        feeds.appendChild(ul);
+      }
+      const feedsUl = feeds.querySelector('ul');
+      const li = document.createElement('li');
+      const h3 = document.createElement('h3');
+      const p = document.createElement('p');
+      li.classList.add('list-group-item');
+      h3.textContent = title.textContent;
+      p.textContent = description.textContent;
+      li.appendChild(p);
+      li.appendChild(h3);
+      feedsUl.append(li);
       if (!posts.querySelector('h2')) {
         const h2 = document.createElement('h2');
         const ul = document.createElement('ul');
@@ -118,7 +114,6 @@ export default async () => {
       feedback.classList.remove('text-success');
       submitButton.disabled = false;
       feedback.textContent = i18n.t(message);
-      submitButton.disabled = false;
       input.removeAttribute('readonly');
     }
   };
@@ -172,14 +167,14 @@ export default async () => {
         input.setAttribute('readonly', 'readonly');
         break;
       case 'feed.loaded':
-        feedsRender(state.data.currentData);
-        postsRender(message, state.data.currentData);
+        render(message, state.data.currentData);
+        // postsRender(message, state.data.currentData);
         break;
       case 'feed.noRss':
-        postsRender(message);
+        render(message);
         break;
       case 'feed.networkError':
-        postsRender(message);
+        render(message);
         break;
       default:
         break;
@@ -189,7 +184,7 @@ export default async () => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form.state':
-        postsRender(value);
+        render(value);
         break;
       case 'feedLoadingState':
         feedLoadingHandler(value);
