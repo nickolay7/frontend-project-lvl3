@@ -32,7 +32,6 @@ export default async () => {
       state: '',
     },
     feedLoadingState: '',
-    error: '',
     data: {
       urls: [],
       currentData: [],
@@ -94,18 +93,34 @@ export default async () => {
     });
   };
 
-  const postsRender = (data) => {
-    const { postsList } = data;
-    if (!posts.querySelector('h2')) {
-      const h2 = document.createElement('h2');
-      const ul = document.createElement('ul');
-      ul.classList.add('list-group');
-      h2.textContent = i18n.t('headers.posts');
-      posts.appendChild(h2);
-      posts.appendChild(ul);
+  const postsRender = (message, data) => {
+    if (data) {
+      const { postsList } = data;
+      if (!posts.querySelector('h2')) {
+        const h2 = document.createElement('h2');
+        const ul = document.createElement('ul');
+        ul.classList.add('list-group');
+        h2.textContent = i18n.t('headers.posts');
+        posts.appendChild(h2);
+        posts.appendChild(ul);
+      }
+      const ul = posts.querySelector('ul');
+      addPosts(ul, postsList);
+      input.classList.remove('is-invalid');
+      feedback.classList.remove('text-danger');
+      feedback.classList.add('text-success');
+      feedback.textContent = i18n.t(message);
+      submitButton.disabled = false;
+      input.removeAttribute('readonly');
+    } else {
+      input.classList.add('is-invalid');
+      feedback.classList.add('text-danger');
+      feedback.classList.remove('text-success');
+      submitButton.disabled = false;
+      feedback.textContent = i18n.t(message);
+      submitButton.disabled = false;
+      input.removeAttribute('readonly');
     }
-    const ul = posts.querySelector('ul');
-    addPosts(ul, postsList);
   };
   // POSTS_UPDATE__________________________________________________________________________
   const postsUpdate = (watchedState, data) => {
@@ -135,31 +150,7 @@ export default async () => {
         }
       })
       .then(() => setTimeout(postsUpdate, 5000, watchedState, data));
-    // return
   };
-  // FEEDBACK____________________________________________
-  const feedbackRender = (message) => {
-    switch (message) {
-      case 'feed.loaded':
-        input.classList.remove('is-invalid');
-        feedback.classList.remove('text-danger');
-        feedback.classList.add('text-success');
-        feedback.textContent = i18n.t(message);
-        submitButton.disabled = false;
-        input.removeAttribute('readonly');
-        break;
-      default:
-        input.classList.add('is-invalid');
-        feedback.classList.add('text-danger');
-        feedback.classList.remove('text-success');
-        submitButton.disabled = false;
-        feedback.textContent = i18n.t(message);
-        submitButton.disabled = false;
-        input.removeAttribute('readonly');
-        break;
-    }
-  };
-
   // i18init_________________________________________________
   await i18n.init({
     lng: defaultLanguage,
@@ -174,35 +165,18 @@ export default async () => {
     .notOneOf(state.data.urls, 'urlAlreadyHas')
     .validate(data);
   // HANDLERS
-  const formStateHandler = (value) => {
-    switch (value) {
-      case 'loading':
-        feedbackRender(value);
-        break;
-      case 'feed.loaded':
-        feedsRender(state.data.currentData);
-        postsRender(state.data.currentData);
-        feedbackRender(value);
-        break;
-      // case 'form.invalid':
-      //  feedbackRender(value);
-      //   break;
-      case 'form.exist':
-        feedbackRender(value);
-        break;
-      // case 'valid':
-      //   feedLoad(watchedState);
-      //   break;
-      default:
-        break;
-    }
-  };
-
   const feedLoadingHandler = (message) => {
     switch (message) {
       case 'loading':
         submitButton.disabled = true;
         input.setAttribute('readonly', 'readonly');
+        break;
+      case 'feed.loaded':
+        feedsRender(state.data.currentData);
+        postsRender(message, state.data.currentData);
+        break;
+      case 'feed.noRss':
+        postsRender(message);
         break;
       default:
         break;
@@ -212,13 +186,10 @@ export default async () => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form.state':
-        formStateHandler(value, watchedState);
+        postsRender(value);
         break;
       case 'feedLoadingState':
         feedLoadingHandler(value);
-        break;
-      case 'error':
-        feedbackRender(value);
         break;
       default:
         break;
@@ -239,9 +210,9 @@ export default async () => {
             state.data.urls.push(url);
             watchedState.data.listsDb.push(data.postsList);
             watchedState.data.currentData = data;
-            watchedState.form.state = 'feed.loaded';
+            watchedState.feedLoadingState = 'feed.loaded';
           } else {
-            watchedState.error = 'feed.noRss';
+            watchedState.feedLoadingState = 'feed.noRss';
           }
         })
         .catch(() => {
@@ -250,10 +221,10 @@ export default async () => {
     })
       .catch((err) => {
         if (err.message === 'invalidUrl') {
-          watchedState.error = 'form.invalid';
+          watchedState.form.state = 'form.invalid';
         }
         if (err.message === 'urlAlreadyHas') {
-          watchedState.error = 'form.exist';
+          watchedState.form.state = 'form.exist';
         }
       });
   });
