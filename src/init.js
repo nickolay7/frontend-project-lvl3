@@ -178,6 +178,9 @@ export default async () => {
       case 'feed.noRss':
         postsRender(message);
         break;
+      case 'feed.networkError':
+        postsRender(message);
+        break;
       default:
         break;
     }
@@ -216,7 +219,7 @@ export default async () => {
           }
         })
         .catch(() => {
-          watchedState.error = 'feed.networkError';
+          watchedState.feedLoadingState = 'feed.networkError';
         });
     })
       .catch((err) => {
