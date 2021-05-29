@@ -145,12 +145,18 @@ export default async () => {
     resources,
   });
   // VALIDATION_________________________________________________
-  const validate = (data) => yup
-    .string()
-    .url('invalidUrl')
-    .required('requiredString')
-    .notOneOf(state.data.urls, 'urlAlreadyHas')
-    .validate(data);
+  const validate = (data) => {
+    try {
+      yup.string()
+        .url('form.invalidUrl')
+        .required('requiredString')
+        .notOneOf(state.data.urls, 'form.urlAlreadyHas')
+        .validateSync(data);
+      return null;
+    } catch (e) {
+      return e.message;
+    }
+  };
   // HANDLERS
   const feedLoadingHandler = (message) => {
     switch (message) {
@@ -160,7 +166,6 @@ export default async () => {
         break;
       case 'feed.loaded':
         render(message, state.data.currentData);
-        // postsRender(message, state.data.currentData);
         break;
       case 'feed.noRss':
         render(message);
@@ -191,30 +196,25 @@ export default async () => {
     const formData = new FormData(e.target);
     const url = formData.get('url');
     watchedState.feedLoadingState = 'loading';
-    validate(url).then(() => {
-      axios.get(getQueryString(url))
-        .then((response) => {
-          const content = response.data.contents;
-          const data = parser(content);
-          if (!data.errors) {
-            state.data.urls.push(url);
-            watchedState.data.currentData = data;
-            watchedState.feedLoadingState = 'feed.loaded';
-          } else {
-            watchedState.feedLoadingState = 'feed.noRss';
-          }
-        })
-        .catch(() => {
-          watchedState.feedLoadingState = 'feed.networkError';
-        });
-    })
-      .catch((err) => {
-        if (err.message === 'invalidUrl') {
-          watchedState.form.state = 'form.invalid';
+    const error = validate(url);
+    if (error) {
+      watchedState.form.state = error;
+      return;
+    }
+    axios.get(getQueryString(url))
+      .then((response) => {
+        const content = response.data.contents;
+        const data = parser(content);
+        if (!data.errors) {
+          state.data.urls.push(url);
+          watchedState.data.currentData = data;
+          watchedState.feedLoadingState = 'feed.loaded';
+        } else {
+          watchedState.feedLoadingState = 'feed.noRss';
         }
-        if (err.message === 'urlAlreadyHas') {
-          watchedState.form.state = 'form.exist';
-        }
+      })
+      .catch(() => {
+        watchedState.feedLoadingState = 'feed.networkError';
       });
   });
   postsUpdate(watchedState, state.data.urls);

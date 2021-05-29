@@ -2,8 +2,8 @@ export default {
   translation: {
     form: {
       empty: 'Mustn\'t be empty',
-      invalid: 'Reference must be valid URL',
-      exist: 'RSS already has',
+      invalidUrl: 'Reference must be valid URL',
+      urlAlreadyHas: 'RSS already has',
     },
     feed: {
       loaded: 'RSS successfully load',
