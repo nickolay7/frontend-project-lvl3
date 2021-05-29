@@ -2,7 +2,7 @@ import i18next from 'i18next';
 import axios from 'axios';
 import onChange from 'on-change';
 import * as yup from 'yup';
-import _ from 'lodash';
+// import _ from 'lodash';
 import resources from './locales/index.js';
 import parser from './parser.js';
 
@@ -132,16 +132,18 @@ export default async () => {
         // get posts lists array
         const newPostsLists = contents.map((post) => parser(post).postsList);
         // get new posts lists array
-        const filtered = newPostsLists
-          .map((items) => _.differenceBy([...items], watchedState.data.listsDb.flat(2), 'link'))
-          .filter((el) => el.length !== 0);
-        if (filtered.length !== 0) {
-          watchedState.data.listsDb.push(filtered);
-        }
-        state.data.currentData = filtered;
+        // const filtered = newPostsLists
+        //   .map((items) => _.differenceBy([...items], watchedState.data.listsDb.flat(2), 'link'))
+        //   .filter((el) => el.length !== 0);
+        // if (filtered.length !== 0) {
+        //   watchedState.data.listsDb.push(filtered);
+        // }
+        // state.data.currentData = filtered;
         const container = posts.querySelector('ul');
+        const newUl = document.createElement('ul');
         if (container) {
-          filtered.forEach((item) => addPosts(container, item));
+          newPostsLists.forEach((item) => addPosts(newUl, item));
+          container.replaceWith(newUl);
         }
       })
       .then(() => setTimeout(postsUpdate, 5000, watchedState, data));
