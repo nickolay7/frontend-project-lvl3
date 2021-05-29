@@ -130,10 +130,11 @@ export default async () => {
         // get posts lists array
         const newPostsLists = contents.map((post) => parser(post).postsList);
         const container = posts.querySelector('ul');
-        const newUl = document.createElement('ul');
+        const fragment = document.createDocumentFragment();
         if (container) {
-          newPostsLists.forEach((item) => addPosts(newUl, item));
-          container.replaceWith(newUl);
+          newPostsLists.forEach((item) => addPosts(fragment, item));
+          container.innerHTML = '';
+          container.append(fragment);
         }
       })
       .then(() => setTimeout(postsUpdate, 5000, watchedState, data));
