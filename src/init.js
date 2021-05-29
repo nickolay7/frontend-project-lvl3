@@ -128,10 +128,16 @@ export default async () => {
           return null;
         });
         // get posts lists array
-        const newPostsLists = contents.map((post) => parser(post).postsList);
+        const newPostsLists = contents.map((post) => {
+          try {
+            return parser(post).postsList;
+          } catch {
+            return null;
+          }
+        }).filter((el) => el);
         const container = posts.querySelector('ul');
         const fragment = document.createDocumentFragment();
-        if (container) {
+        if (container && newPostsLists.length !== 0) {
           newPostsLists.forEach((item) => addPosts(fragment, item));
           container.innerHTML = '';
           container.append(fragment);
@@ -205,14 +211,14 @@ export default async () => {
     axios.get(getQueryString(url))
       .then((response) => {
         const content = response.data.contents;
-        const data = parser(content);
-        if (!data.errors) {
-          state.data.urls.push(url);
-          watchedState.data.currentData = data;
-          watchedState.feedLoadingState = 'feed.loaded';
-        } else {
-          watchedState.feedLoadingState = 'feed.noRss';
+        try {
+          watchedState.data.currentData = parser(content);
+        } catch (err) {
+          watchedState.feedLoadingState = err.message;
+          return;
         }
+        state.data.urls.push(url);
+        watchedState.feedLoadingState = 'feed.loaded';
       })
       .catch(() => {
         watchedState.feedLoadingState = 'feed.networkError';

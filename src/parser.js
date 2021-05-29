@@ -1,6 +1,10 @@
 export default (xml) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, 'application/xml');
+  const errors = doc.querySelector('parsererror');
+  if (errors) {
+    throw new Error('feed.noRss');
+  }
   const title = doc.querySelector('title');
   const description = doc.querySelector('description');
   const posts = doc.querySelectorAll('item');
@@ -13,8 +17,7 @@ export default (xml) => {
       postTitle, postDescription, pubDate, link,
     };
   });
-  const errors = doc.querySelector('parsererror');
   return {
-    errors, title, description, postsList,
+    title, description, postsList,
   };
 };
