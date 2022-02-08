@@ -13,4 +13,7 @@ lint:
 publish:
 	npm publish --dry-run
 
+start:
+	npm start
+
 .PHONY: test

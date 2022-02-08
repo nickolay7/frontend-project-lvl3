@@ -1,3 +1,13 @@
+# Start reading RSS today! It's easy, it's beautiful.
+
+## install
+
+#### make install
+
+## start
+
+#### make start
+
 ### Hexlet tests and linter status:
 [![Actions Status](https://github.com/nickolay7/frontend-project-lvl3/workflows/hexlet-check/badge.svg)](https://github.com/nickolay7/frontend-project-lvl3/actions)
 [![Maintainability](https://api.codeclimate.com/v1/badges/a99f408b00c004f86a09/maintainability)](https://codeclimate.com/github/nickolay7/frontend-project-lvl3/maintainability)

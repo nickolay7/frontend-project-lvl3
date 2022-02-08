@@ -13,7 +13,7 @@
     "type": "git",
     "url": "git+https://github.com/nickolay7/frontend-project-lvl3.git"
   },
-  "author": "",
+  "author": "nickolay7",
   "license": "ISC",
   "type": "module",
   "jest": {

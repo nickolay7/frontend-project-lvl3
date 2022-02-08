@@ -28,13 +28,16 @@ export default async () => {
   const state = {
     lng: defaultLanguage,
     form: {
+      valid: true,
+    },
+    feedLoading: {
       state: '',
     },
-    feedLoadingState: '',
     data: {
       urls: [],
-      currentData: [],
+      currentData: {},
     },
+    errors: '',
   };
   // RENDER_______________________________________________
   const addPosts = (container, data) => {
@@ -68,10 +71,10 @@ export default async () => {
     });
   };
 
-  const render = (message, data) => {
+  const render = (watchedState) => {
     form.reset();
-    if (data) {
-      const { title, description, postsList } = data;
+    if (watchedState.feedLoading.state === 'feed.loaded') {
+      const { title, description, postsList } = state.data.currentData;
       if (!feeds.querySelector('h2')) {
         const h2 = document.createElement('h2');
         const ul = document.createElement('ul');
@@ -103,7 +106,7 @@ export default async () => {
       input.classList.remove('is-invalid');
       feedback.classList.remove('text-danger');
       feedback.classList.add('text-success');
-      feedback.textContent = i18n.t(message);
+      feedback.textContent = i18n.t(watchedState.feedLoading.state);
       submitButton.disabled = false;
       input.removeAttribute('readonly');
     } else {
@@ -111,7 +114,7 @@ export default async () => {
       feedback.classList.add('text-danger');
       feedback.classList.remove('text-success');
       submitButton.disabled = false;
-      feedback.textContent = i18n.t(message);
+      feedback.textContent = i18n.t(watchedState.errors);
       input.removeAttribute('readonly');
     }
   };
@@ -165,20 +168,25 @@ export default async () => {
     }
   };
   // HANDLERS
-  const feedLoadingHandler = (message) => {
+  // const errorsHandler = (watchedState) => {
+  //   render(watchedState);
+  // };
+
+  const feedLoadingHandler = (watchedState, message) => {
     switch (message) {
       case 'loading':
         submitButton.disabled = true;
         input.setAttribute('readonly', 'readonly');
         break;
       case 'feed.loaded':
-        render(message, state.data.currentData);
+        render(watchedState);
         break;
       case 'feed.noRss':
-        render(message);
+        render(watchedState);
         break;
       case 'feed.networkError':
-        render(message);
+        render(watchedState);
+        // errorsHandler(watchedState);
         break;
       default:
         break;
@@ -187,11 +195,15 @@ export default async () => {
   // WATCHED_STATE
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
-      case 'form.state':
-        render(value);
+      // case 'form.valid':
+      //   render(watchedState);
+      //   break;
+      case 'errors':
+        render(watchedState);
+        // errorsHandler(watchedState);
         break;
-      case 'feedLoadingState':
-        feedLoadingHandler(value);
+      case 'feedLoading.state':
+        feedLoadingHandler(watchedState, value);
         break;
       default:
         break;
@@ -202,26 +214,30 @@ export default async () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const url = formData.get('url');
-    watchedState.feedLoadingState = 'loading';
     const error = validate(url);
+    watchedState.feedLoading.state = 'ready';
     if (error) {
-      watchedState.form.state = error;
+      watchedState.errors = error;
+      console.log(watchedState.errors)
+      // watchedState.form.valid = false;
       return;
     }
+    watchedState.feedLoading.state = 'loading';
     axios.get(getQueryString(url))
       .then((response) => {
         const content = response.data.contents;
         try {
-          watchedState.data.currentData = parser(content);
+          state.data.currentData = parser(content);
         } catch (err) {
-          watchedState.feedLoadingState = err.message;
+          watchedState.errors = err.message;
           return;
         }
         state.data.urls.push(url);
-        watchedState.feedLoadingState = 'feed.loaded';
+        watchedState.feedLoading.state = 'feed.loaded';
+        console.log(state.data.urls)
       })
       .catch(() => {
-        watchedState.feedLoadingState = 'feed.networkError';
+        watchedState.errors = 'feed.networkError';
       });
   });
   postsUpdate(watchedState, state.data.urls);
